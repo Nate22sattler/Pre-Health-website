@@ -1,3 +1,5 @@
+// a configuration file for ESLint, a tool that checks JavaScript/TypeScript code for mistakes and style problems
+
 import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
