@@ -1,6 +1,3 @@
-// Is a TypeScript configuration file that tells TypeScript how to 
-// organize and link multiple sub-project configs.
-
 {
   "files": [],
   "references": [

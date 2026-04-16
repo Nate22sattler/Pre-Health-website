@@ -1,7 +1,3 @@
-
-// Is a package.json file for a JavaScript/TypeScript project.
-// It defines the project’s name, dependencies, and commands (scripts) that you can run.
-
 {
   "name": "pre-health-website",
   "private": true,

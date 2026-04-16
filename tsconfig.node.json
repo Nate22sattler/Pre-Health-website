@@ -1,8 +1,3 @@
-// This is a TypeScript configuration file specifically for the 
-// Node.js / tooling side of a Vite + TypeScript project.
-// It tells TypeScript how to type-check files like your Vite config 
-// and build scripts, not your React app.
-
 {
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
