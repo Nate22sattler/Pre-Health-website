@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './App.css'
 
-type View = 'home' | 'directory'
+type View = 'home' | 'directory' | 'internships'
 
 type Contact = {
   name: string
@@ -10,6 +10,19 @@ type Contact = {
   location: string
   connectionType: string
   notes: string
+}
+
+type Internship = {
+  title: string
+  organization: string
+  focus: string
+  term: string
+  location: string
+  format: string
+  applicationWindow: string
+  fit: string
+  description: string
+  nextStep: string
 }
 
 const contacts: Contact[] = [
@@ -47,6 +60,51 @@ const contacts: Contact[] = [
   },
 ]
 
+const internships: Internship[] = [
+  {
+    title: 'Hospital Volunteer Internship',
+    organization: 'Boston Medical Center',
+    focus: 'Clinical exposure',
+    term: 'Summer',
+    location: 'Boston, MA',
+    format: 'In person',
+    applicationWindow: 'January-March',
+    fit: 'Pre-med and pre-PA students',
+    description:
+      'A structured placement that helps students observe patient-facing environments, build professionalism, and reflect on clinical calling.',
+    nextStep:
+      'Prepare a short resume, ask for one reference, and be ready to explain why direct service matters to you.',
+  },
+  {
+    title: 'Public Health Research Internship',
+    organization: 'Massachusetts Department of Public Health',
+    focus: 'Community health and policy',
+    term: 'Summer or semester',
+    location: 'Hybrid',
+    format: 'Hybrid',
+    applicationWindow: 'February-April',
+    fit: 'Public health, biology, and psychology students',
+    description:
+      'Students support outreach, data organization, and program evaluation while learning how prevention work happens beyond the clinic.',
+    nextStep:
+      'Look for application prompts about communication, service, and interest in health equity before submitting.',
+  },
+  {
+    title: 'Dental Shadowing Fellowship',
+    organization: 'Worcester Family Dental',
+    focus: 'Dental practice exposure',
+    term: 'Rolling placements',
+    location: 'Worcester, MA',
+    format: 'In person',
+    applicationWindow: 'Year-round',
+    fit: 'Students exploring dentistry',
+    description:
+      'A lighter-commitment opportunity designed for students who want to understand the pace, teamwork, and patient education side of dentistry.',
+    nextStep:
+      'Reach out with a concise email, a brief introduction, and a few available dates for observation.',
+  },
+]
+
 const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
 
 function App() {
@@ -77,6 +135,12 @@ function App() {
             onClick={() => setView('directory')}
           >
             Alumni contacts
+          </button>
+          <button
+            className={view === 'internships' ? 'nav-link active' : 'nav-link'}
+            onClick={() => setView('internships')}
+          >
+            Internships
           </button>
         </nav>
       </header>
@@ -143,7 +207,7 @@ function App() {
             </article>
           </section>
         </main>
-      ) : (
+      ) : view === 'directory' ? (
         <main className="page">
           <section className="directory-header">
             <div>
@@ -188,6 +252,96 @@ function App() {
                   </div>
                 </dl>
                 <p className="contact-notes">{contact.notes}</p>
+              </article>
+            ))}
+          </section>
+        </main>
+      ) : (
+        <main className="page">
+          <section className="internships-hero">
+            <div className="hero-copy">
+              <p className="section-label">Internship guide</p>
+              <h2>Find early experiences that help you test your direction.</h2>
+              <p className="lead">
+                This page gives students a simple starting point for exploring internships
+                across clinical, research, and community health settings. Each opportunity
+                highlights what it is best for, when to apply, and how to prepare.
+              </p>
+            </div>
+
+            <aside className="signal-card">
+              <p className="section-label">How to use this page</p>
+              <ul>
+                <li>Start with opportunities that match the kind of exposure you need next.</li>
+                <li>Pay attention to timing so you can prepare before application windows open.</li>
+                <li>Use the next-step note to turn interest into one concrete action.</li>
+              </ul>
+            </aside>
+          </section>
+
+          <section className="internship-overview">
+            <article className="content-card">
+              <p className="section-label">Why internships matter</p>
+              <h3>They help students move from general interest to informed commitment.</h3>
+              <p>
+                Good internships give more than a line on a resume. They help students see
+                workflows, ask better questions, and notice which settings energize them.
+              </p>
+            </article>
+
+            <article className="content-card">
+              <p className="section-label">What to look for</p>
+              <h3>Choose opportunities with clear learning value.</h3>
+              <p>
+                Strong options usually offer mentorship, direct observation, and enough
+                structure for you to understand how the organization actually serves people.
+              </p>
+            </article>
+          </section>
+
+          <section className="internships-list">
+            {internships.map((internship) => (
+              <article key={internship.title} className="internship-card">
+                <div className="internship-header">
+                  <div>
+                    <p className="contact-field">{internship.focus}</p>
+                    <h3>{internship.title}</h3>
+                  </div>
+                  <p className="internship-organization">{internship.organization}</p>
+                </div>
+
+                <p className="internship-description">{internship.description}</p>
+
+                <div className="internship-table-wrapper">
+                  <table className="internship-table">
+                    <tbody>
+                      <tr>
+                        <th scope="row">Term</th>
+                        <td>{internship.term}</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Location</th>
+                        <td>{internship.location}</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Format</th>
+                        <td>{internship.format}</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Apply</th>
+                        <td>{internship.applicationWindow}</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Best fit</th>
+                        <td>{internship.fit}</td>
+                      </tr>
+                      <tr>
+                        <th scope="row">Next step</th>
+                        <td>{internship.nextStep}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </article>
             ))}
           </section>
