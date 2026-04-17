@@ -1,5 +1,6 @@
 # tells Git which files or folders it should NOT track or upload to the repository
 
+
 # Logs
 logs
 *.log
@@ -24,3 +25,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.env
