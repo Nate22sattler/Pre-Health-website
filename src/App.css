@@ -77,10 +77,22 @@
   align-items: stretch;
 }
 
+.internships-hero,
+.internship-overview {
+  display: grid;
+  gap: 24px;
+}
+
+.internships-hero {
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 0.85fr);
+  align-items: stretch;
+}
+
 .hero-copy,
 .signal-card,
 .content-card,
-.contact-card {
+.contact-card,
+.internship-card {
   border: 1px solid var(--line);
   border-radius: 28px;
   background: var(--panel);
@@ -120,7 +132,8 @@
 
 .signal-card,
 .content-card,
-.contact-card {
+.contact-card,
+.internship-card {
   padding: 28px;
 }
 
@@ -131,7 +144,9 @@
 }
 
 .content-grid,
-.directory-grid {
+.directory-grid,
+.internship-overview,
+.internships-list {
   display: grid;
   gap: 20px;
   margin-top: 24px;
@@ -172,6 +187,11 @@
   margin-top: 28px;
 }
 
+.internship-overview,
+.internships-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .contact-header {
   display: flex;
   justify-content: space-between;
@@ -200,6 +220,58 @@
   margin: 4px 0 0;
 }
 
+.internship-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.internship-organization,
+.internship-description {
+  color: var(--muted);
+}
+
+.internship-organization {
+  margin-bottom: 0;
+  text-align: right;
+  max-width: 18ch;
+}
+
+.internship-description {
+  margin: 18px 0 20px;
+}
+
+.internship-table-wrapper {
+  overflow-x: auto;
+}
+
+.internship-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+}
+
+.internship-table th,
+.internship-table td {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  vertical-align: top;
+}
+
+.internship-table th {
+  width: 110px;
+  padding-right: 18px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  letter-spacing: 0.04em;
+  text-align: left;
+}
+
+.internship-table td {
+  color: var(--text);
+}
+
 @media (max-width: 900px) {
   .topbar,
   .directory-header {
@@ -216,6 +288,9 @@
   .hero-panel,
   .content-grid,
   .directory-grid,
+  .internships-hero,
+  .internship-overview,
+  .internships-list,
   .contact-meta {
     grid-template-columns: 1fr;
   }
@@ -223,7 +298,17 @@
   .hero-copy,
   .signal-card,
   .content-card,
-  .contact-card {
+  .contact-card,
+  .internship-card {
     padding: 22px;
+  }
+
+  .internship-header {
+    flex-direction: column;
+  }
+
+  .internship-organization {
+    max-width: none;
+    text-align: left;
   }
 }
