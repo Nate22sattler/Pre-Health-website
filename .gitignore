@@ -1,8 +1,5 @@
 # tells Git which files or folders it should NOT track or upload to the repository
 
-# Files we made
-.env
-
 # Logs
 logs
 *.log
