@@ -1,6 +1,7 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
 import { useState } from 'react'
+import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
 
 type View = 'home' | 'directory' | 'internships'
@@ -123,7 +124,7 @@ function App() {
       <header className="topbar">
         <div>
           <p className="eyebrow">Sattler College Pre-Health Club</p>
-          <h1>Build a bridge from curious students to trusted mentors.</h1>
+          <h1>Find mentors. Ask questions. Move forward.</h1>
         </div>
         <nav className="nav">
           <button
@@ -151,11 +152,11 @@ function App() {
         <main className="page">
           <section className="hero-panel">
             <div className="hero-copy">
-              <p className="section-label">Why this site matters</p>
-              <h2>Students should not have to figure out healthcare careers alone.</h2>
+              <p className="section-label">Sattler Pre-Health Association</p>
+              <h2>You don&apos;t have to figure out your healthcare career alone.</h2>
               <p className="lead">
-                This website can become the club&apos;s central place for students to
-                discover career paths, learn from alumni, and reach out with more confidence.
+                A platform designed to help students discover career paths, learn from
+                alumni, and reach out with clarity and confidence.
               </p>
               <div className="hero-actions">
                 <button className="primary-button" onClick={() => setView('directory')}>
@@ -167,20 +168,30 @@ function App() {
               </div>
             </div>
 
-            <aside className="signal-card">
-              <p className="section-label">First MVP</p>
-              <ul>
-                <li>A welcoming homepage that explains the purpose of the club network.</li>
-                <li>A clean alumni directory organized by field and career stage.</li>
-                <li>A simple way for students to know who to contact and what to ask.</li>
-              </ul>
-            </aside>
+            <div className="hero-side-stack">
+              <aside className="brand-panel">
+                <div className="brand-panel-frame">
+                  <img
+                    className="brand-logo"
+                    src={preHealthLogo}
+                    alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+                  />
+                </div>
+
+                <div className="brand-panel-copy">
+                  <h3>Connect. Equip. Serve.</h3>
+                  <p>
+                    The Sattler Pre-Health Association is aimed at creating a tight-knit community among fellow students pursuing health careers, equipping them to stay motivated and navigate the path to graduate school. This will be accomplished through building broader networks, compiling resources, and offering various workshops and speaking events through the semester.
+                  </p>
+                </div>
+              </aside>
+            </div>
           </section>
 
           <section id="how-it-works" className="content-grid">
             <article className="content-card">
-              <p className="section-label">Main page goals</p>
-              <h3>What the homepage should do</h3>
+              <p className="section-label">mentor connections</p>
+              <h3>Connect with Alumni Mentors</h3>
               <ul>
                 <li>Explain the mission in one sentence.</li>
                 <li>Show how students can use the site in a few quick steps.</li>
@@ -189,8 +200,8 @@ function App() {
             </article>
 
             <article className="content-card">
-              <p className="section-label">Directory goals</p>
-              <h3>What the contacts page should include</h3>
+              <p className="section-label">career discovery</p>
+              <h3>Discover Internships and Experiences</h3>
               <ul>
                 <li>Name, field, current role, location, and best topics to discuss.</li>
                 <li>Clear categories like medicine, dentistry, PT, nursing, or public health.</li>
@@ -199,8 +210,8 @@ function App() {
             </article>
 
             <article className="content-card">
-              <p className="section-label">What comes later</p>
-              <h3>Strong next features after the MVP</h3>
+              <p className="section-label">real world experience</p>
+              <h3>Explore Healthcare Paths</h3>
               <ul>
                 <li>Search and filtering by major, profession, and application stage.</li>
                 <li>A request form for students who want an introduction.</li>
