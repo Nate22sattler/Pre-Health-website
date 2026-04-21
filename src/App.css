@@ -231,6 +231,10 @@
   margin-top: 28px;
 }
 
+.status-card {
+  grid-column: 1 / -1;
+}
+
 .internship-overview,
 .internships-list {
   grid-template-columns: repeat(2, minmax(0, 1fr));

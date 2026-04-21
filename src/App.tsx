@@ -1,6 +1,6 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
 import { supabase } from './supabaseClient'
@@ -8,6 +8,7 @@ import { supabase } from './supabaseClient'
 type View = 'home' | 'directory' | 'internships'
 
 type Contact = {
+  id: string
   name: string
   field: string
   role: string
@@ -17,6 +18,7 @@ type Contact = {
 }
 
 type Internship = {
+  id: string
   title: string
   organization: string
   focus: string
@@ -29,105 +31,110 @@ type Internship = {
   nextStep: string
 }
 
-const contacts: Contact[] = [
-  {
-    name: 'Rachel Kim',
-    field: 'Medicine',
-    role: 'MS2, University of Rochester School of Medicine',
-    location: 'New York',
-    connectionType: 'Medical school',
-    notes: 'Happy to speak with pre-med students about gap years, applications, and interviews.',
-  },
-  {
-    name: 'Daniel Owusu',
-    field: 'Physical Therapy',
-    role: 'Physical Therapist, Hartford HealthCare',
-    location: 'Connecticut',
-    connectionType: 'Clinical career',
-    notes: 'Can share what clinical rotations are like and how to compare PT programs.',
-  },
-  {
-    name: 'Mia Hernandez',
-    field: 'Public Health',
-    role: 'Program Coordinator, Boston community health nonprofit',
-    location: 'Massachusetts',
-    connectionType: 'Public health',
-    notes: 'Interested in mentoring students exploring community health and policy work.',
-  },
-  {
-    name: 'Nathan Brooks',
-    field: 'Dentistry',
-    role: 'D1, Tufts University School of Dental Medicine',
-    location: 'Massachusetts',
-    connectionType: 'Dental school',
-    notes: 'Can answer questions about shadowing, DAT prep, and choosing between schools.',
-  },
-]
+type ContactRow = {
+  id: string
+  name: string
+  field: string
+  role: string
+  location: string
+  connection_type: string
+  notes: string
+}
 
-const internships: Internship[] = [
-  {
-    title: 'Hospital Volunteer Internship',
-    organization: 'Boston Medical Center',
-    focus: 'Clinical exposure',
-    term: 'Summer',
-    location: 'Boston, MA',
-    format: 'In person',
-    applicationWindow: 'January-March',
-    fit: 'Pre-med and pre-PA students',
-    description:
-      'A structured placement that helps students observe patient-facing environments, build professionalism, and reflect on clinical calling.',
-    nextStep:
-      'Prepare a short resume, ask for one reference, and be ready to explain why direct service matters to you.',
-  },
-  {
-    title: 'Public Health Research Internship',
-    organization: 'Massachusetts Department of Public Health',
-    focus: 'Community health and policy',
-    term: 'Summer or semester',
-    location: 'Hybrid',
-    format: 'Hybrid',
-    applicationWindow: 'February-April',
-    fit: 'Public health, biology, and psychology students',
-    description:
-      'Students support outreach, data organization, and program evaluation while learning how prevention work happens beyond the clinic.',
-    nextStep:
-      'Look for application prompts about communication, service, and interest in health equity before submitting.',
-  },
-  {
-    title: 'Dental Shadowing Fellowship',
-    organization: 'Worcester Family Dental',
-    focus: 'Dental practice exposure',
-    term: 'Rolling placements',
-    location: 'Worcester, MA',
-    format: 'In person',
-    applicationWindow: 'Year-round',
-    fit: 'Students exploring dentistry',
-    description:
-      'A lighter-commitment opportunity designed for students who want to understand the pace, teamwork, and patient education side of dentistry.',
-    nextStep:
-      'Reach out with a concise email, a brief introduction, and a few available dates for observation.',
-  },
-]
+type InternshipRow = {
+  id: string
+  title: string
+  organization: string
+  focus: string
+  term: string
+  location: string
+  format: string
+  application_window: string
+  fit: string
+  description: string
+  next_step: string
+}
 
-const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
+function mapContactRow(row: ContactRow): Contact {
+  return {
+    id: row.id,
+    name: row.name,
+    field: row.field,
+    role: row.role,
+    location: row.location,
+    connectionType: row.connection_type,
+    notes: row.notes,
+  }
+}
+
+function mapInternshipRow(row: InternshipRow): Internship {
+  return {
+    id: row.id,
+    title: row.title,
+    organization: row.organization,
+    focus: row.focus,
+    term: row.term,
+    location: row.location,
+    format: row.format,
+    applicationWindow: row.application_window,
+    fit: row.fit,
+    description: row.description,
+    nextStep: row.next_step,
+  }
+}
 
 function App() {
   const [view, setView] = useState<View>('home')
   const [selectedField, setSelectedField] = useState('All fields')
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [internships, setInternships] = useState<Internship[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Test Supabase connection
   useEffect(() => {
-    async function testConnection() {
-      const { data, error } = await supabase
-        .from('test_table')
-        .select('*')
+    let isActive = true
 
-      console.log('SUPABASE DATA:', data)
-      console.log('SUPABASE ERROR:', error)
+    async function loadData() {
+      setLoading(true)
+      setError(null)
+
+      const [
+        { data: contactRows, error: contactsError },
+        { data: internshipRows, error: internshipsError },
+      ] = await Promise.all([
+        supabase.from('contacts').select('*').order('name'),
+        supabase.from('internships').select('*').order('title'),
+      ])
+
+      if (!isActive) {
+        return
+      }
+
+      if (contactsError || internshipsError) {
+        setError(
+          contactsError?.message ?? internshipsError?.message ?? 'Unable to load data from Supabase.',
+        )
+        setLoading(false)
+        return
+      }
+
+      setContacts(((contactRows as ContactRow[] | null) ?? []).map((row: ContactRow) => mapContactRow(row)))
+      setInternships(
+        ((internshipRows as InternshipRow[] | null) ?? []).map((row: InternshipRow) =>
+          mapInternshipRow(row),
+        ),
+      )
+      setLoading(false)
     }
 
-    testConnection()
+    void loadData()
+
+    return () => {
+      isActive = false
+    }
   }, [])
+
+  const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
 
   const visibleContacts =
     selectedField === 'All fields'
@@ -262,26 +269,40 @@ function App() {
           </section>
 
           <section className="directory-grid">
-            {visibleContacts.map((contact) => (
-              <article key={contact.name} className="contact-card">
-                <div className="contact-header">
-                  <p className="contact-field">{contact.field}</p>
-                  <h3>{contact.name}</h3>
-                </div>
-                <p className="contact-role">{contact.role}</p>
-                <dl className="contact-meta">
-                  <div>
-                    <dt>Location</dt>
-                    <dd>{contact.location}</dd>
-                  </div>
-                  <div>
-                    <dt>Best for</dt>
-                    <dd>{contact.connectionType}</dd>
-                  </div>
-                </dl>
-                <p className="contact-notes">{contact.notes}</p>
+            {loading ? (
+              <article className="content-card status-card">
+                <p>Loading alumni contacts...</p>
               </article>
-            ))}
+            ) : error ? (
+              <article className="content-card status-card">
+                <p>{error}</p>
+              </article>
+            ) : visibleContacts.length === 0 ? (
+              <article className="content-card status-card">
+                <p>No contacts available yet.</p>
+              </article>
+            ) : (
+              visibleContacts.map((contact) => (
+                <article key={contact.id} className="contact-card">
+                  <div className="contact-header">
+                    <p className="contact-field">{contact.field}</p>
+                    <h3>{contact.name}</h3>
+                  </div>
+                  <p className="contact-role">{contact.role}</p>
+                  <dl className="contact-meta">
+                    <div>
+                      <dt>Location</dt>
+                      <dd>{contact.location}</dd>
+                    </div>
+                    <div>
+                      <dt>Best for</dt>
+                      <dd>{contact.connectionType}</dd>
+                    </div>
+                  </dl>
+                  <p className="contact-notes">{contact.notes}</p>
+                </article>
+              ))
+            )}
           </section>
         </main>
       ) : (
@@ -328,50 +349,64 @@ function App() {
           </section>
 
           <section className="internships-list">
-            {internships.map((internship) => (
-              <article key={internship.title} className="internship-card">
-                <div className="internship-header">
-                  <div>
-                    <p className="contact-field">{internship.focus}</p>
-                    <h3>{internship.title}</h3>
-                  </div>
-                  <p className="internship-organization">{internship.organization}</p>
-                </div>
-
-                <p className="internship-description">{internship.description}</p>
-
-                <div className="internship-table-wrapper">
-                  <table className="internship-table">
-                    <tbody>
-                      <tr>
-                        <th scope="row">Term</th>
-                        <td>{internship.term}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Location</th>
-                        <td>{internship.location}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Format</th>
-                        <td>{internship.format}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Apply</th>
-                        <td>{internship.applicationWindow}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Best fit</th>
-                        <td>{internship.fit}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Next step</th>
-                        <td>{internship.nextStep}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+            {loading ? (
+              <article className="content-card status-card">
+                <p>Loading internships...</p>
               </article>
-            ))}
+            ) : error ? (
+              <article className="content-card status-card">
+                <p>{error}</p>
+              </article>
+            ) : internships.length === 0 ? (
+              <article className="content-card status-card">
+                <p>No internships available yet.</p>
+              </article>
+            ) : (
+              internships.map((internship) => (
+                <article key={internship.id} className="internship-card">
+                  <div className="internship-header">
+                    <div>
+                      <p className="contact-field">{internship.focus}</p>
+                      <h3>{internship.title}</h3>
+                    </div>
+                    <p className="internship-organization">{internship.organization}</p>
+                  </div>
+
+                  <p className="internship-description">{internship.description}</p>
+
+                  <div className="internship-table-wrapper">
+                    <table className="internship-table">
+                      <tbody>
+                        <tr>
+                          <th scope="row">Term</th>
+                          <td>{internship.term}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Location</th>
+                          <td>{internship.location}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Format</th>
+                          <td>{internship.format}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Apply</th>
+                          <td>{internship.applicationWindow}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Best fit</th>
+                          <td>{internship.fit}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Next step</th>
+                          <td>{internship.nextStep}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </article>
+              ))
+            )}
           </section>
         </main>
       )}
