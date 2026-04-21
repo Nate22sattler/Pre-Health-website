@@ -1,8 +1,9 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
+import { supabase } from './supabaseClient'
 
 type View = 'home' | 'directory' | 'internships'
 
@@ -113,6 +114,20 @@ const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field
 function App() {
   const [view, setView] = useState<View>('home')
   const [selectedField, setSelectedField] = useState('All fields')
+
+  // Test Supabase connection
+  useEffect(() => {
+    async function testConnection() {
+      const { data, error } = await supabase
+        .from('test_table')
+        .select('*')
+
+      console.log('SUPABASE DATA:', data)
+      console.log('SUPABASE ERROR:', error)
+    }
+
+    testConnection()
+  }, [])
 
   const visibleContacts =
     selectedField === 'All fields'
