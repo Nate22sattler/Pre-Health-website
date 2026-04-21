@@ -153,7 +153,7 @@ function App() {
           <section className="hero-panel">
             <div className="hero-copy">
               <p className="section-label">Sattler Pre-Health Association</p>
-              <h2>You don&apos;t have to figure out your healthcare career alone.</h2>
+              <h2>Choosing your path can be a formidable obstacle. We&apos;re here to change that.</h2>
               <p className="lead">
                 A platform designed to help students discover career paths, learn from
                 alumni, and reach out with clarity and confidence.
