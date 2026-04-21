@@ -1,5 +1,6 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
+import { useState } from 'react'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
 
@@ -155,7 +156,7 @@ function App() {
               <h2>Choosing your path can be a formidable obstacle. We&apos;re here to change that.</h2>
               <p className="lead">
                 This platform is designed to help students discover career paths, learn from
-                alumni, and reach out with clarity and confidence. To begin browsing alumnis or research oppurtunities navigate to the respective pages. 
+                alumni, and reach out with clarity and confidence. To begin browsing alumnis or research oppurtunities navigate to the respective page. 
               </p>
               <div className="hero-actions">
                 <button className="primary-button" onClick={() => setView('directory')}>
