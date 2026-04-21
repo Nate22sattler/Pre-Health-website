@@ -155,8 +155,8 @@ function App() {
               <p className="section-label">Sattler Pre-Health Association</p>
               <h2>Choosing your path can be a formidable obstacle. We&apos;re here to change that.</h2>
               <p className="lead">
-                A platform designed to help students discover career paths, learn from
-                alumni, and reach out with clarity and confidence.
+                This platform is designed to help students discover career paths, learn from
+                alumni, and reach out with clarity and confidence. To begin browsing alumnis or research oppurtunities navigate to the respective pages. 
               </p>
               <div className="hero-actions">
                 <button className="primary-button" onClick={() => setView('directory')}>
