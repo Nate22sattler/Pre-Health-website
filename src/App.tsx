@@ -1,6 +1,5 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
-import { useState } from 'react'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
 
