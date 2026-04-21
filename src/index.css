@@ -17,6 +17,8 @@
   --line: rgba(90, 66, 50, 0.14);
   --panel: rgba(255, 252, 247, 0.82);
   --accent: #c95b2b;
+  --brand: #18315e;
+  --brand-line: rgba(24, 49, 94, 0.14);
   --shadow: 0 20px 45px rgba(79, 51, 33, 0.08);
 }
 
