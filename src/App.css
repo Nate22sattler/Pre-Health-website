@@ -207,6 +207,14 @@
   align-items: end;
 }
 
+.directory-actions {
+  display: flex;
+  gap: 14px;
+  align-items: end;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+
 .filter {
   display: grid;
   gap: 10px;
@@ -242,6 +250,90 @@
 
 .internships-list {
   align-items: start;
+.submit-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.85fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.submit-form-panel {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  margin-top: 24px;
+}
+
+.submit-form-header {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.submit-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 20px;
+}
+
+.form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.form-field span {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  font: inherit;
+  color: var(--text);
+  background: white;
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: 2px solid rgba(26, 51, 95, 0.18);
+  outline-offset: 2px;
+  border-color: var(--brand);
+}
+
+.form-field small {
+  color: #9d2b2b;
+  font-size: 0.82rem;
+}
+
+.form-field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  margin-top: 6px;
+}
+
+.success-message {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(31, 122, 77, 0.2);
+  border-radius: 18px;
+  background: rgba(223, 245, 232, 0.8);
+  color: #215c3e;
 }
 
 .contact-header {
@@ -492,6 +584,8 @@
   .internships-hero,
   .internship-overview,
   .internships-list,
+  .submit-layout,
+  .submit-form,
   .contact-meta {
     grid-template-columns: 1fr;
   }
@@ -501,7 +595,8 @@
   .signal-card,
   .content-card,
   .contact-card,
-  .internship-card {
+  .internship-card,
+  .submit-form-panel {
     padding: 22px;
   }
 
@@ -517,5 +612,10 @@
   .internship-organization {
     max-width: none;
     text-align: left;
+  }
+
+  .directory-actions {
+    width: 100%;
+    justify-content: start;
   }
 }

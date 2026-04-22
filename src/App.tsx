@@ -1,11 +1,11 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
 import { supabase } from './supabaseClient'
 
-type View = 'home' | 'directory' | 'internships'
+type View = 'home' | 'directory' | 'internships' | 'submit'
 
 type Contact = {
   id: string
@@ -134,6 +134,115 @@ function mapInternshipExperienceRow(row: InternshipExperienceRow): InternshipExp
 function formatExperienceDate(date: string): string {
   return experienceDateFormatter.format(new Date(date))
 }
+type SubmissionFormData = {
+  fullName: string
+  email: string
+  field: string
+  role: string
+  organization: string
+  location: string
+  connectionType: string
+  topics: string
+  notes: string
+  preferredContact: string
+  mentoringInterest: string
+}
+
+const contacts: Contact[] = [
+  {
+    name: 'Rachel Kim',
+    field: 'Medicine',
+    role: 'MS2, University of Rochester School of Medicine',
+    location: 'New York',
+    connectionType: 'Medical school',
+    notes: 'Happy to speak with pre-med students about gap years, applications, and interviews.',
+  },
+  {
+    name: 'Daniel Owusu',
+    field: 'Physical Therapy',
+    role: 'Physical Therapist, Hartford HealthCare',
+    location: 'Connecticut',
+    connectionType: 'Clinical career',
+    notes: 'Can share what clinical rotations are like and how to compare PT programs.',
+  },
+  {
+    name: 'Mia Hernandez',
+    field: 'Public Health',
+    role: 'Program Coordinator, Boston community health nonprofit',
+    location: 'Massachusetts',
+    connectionType: 'Public health',
+    notes: 'Interested in mentoring students exploring community health and policy work.',
+  },
+  {
+    name: 'Nathan Brooks',
+    field: 'Dentistry',
+    role: 'D1, Tufts University School of Dental Medicine',
+    location: 'Massachusetts',
+    connectionType: 'Dental school',
+    notes: 'Can answer questions about shadowing, DAT prep, and choosing between schools.',
+  },
+]
+
+const internships: Internship[] = [
+  {
+    title: 'Hospital Volunteer Internship',
+    organization: 'Boston Medical Center',
+    focus: 'Clinical exposure',
+    term: 'Summer',
+    location: 'Boston, MA',
+    format: 'In person',
+    applicationWindow: 'January-March',
+    fit: 'Pre-med and pre-PA students',
+    description:
+      'A structured placement that helps students observe patient-facing environments, build professionalism, and reflect on clinical calling.',
+    nextStep:
+      'Prepare a short resume, ask for one reference, and be ready to explain why direct service matters to you.',
+  },
+  {
+    title: 'Public Health Research Internship',
+    organization: 'Massachusetts Department of Public Health',
+    focus: 'Community health and policy',
+    term: 'Summer or semester',
+    location: 'Hybrid',
+    format: 'Hybrid',
+    applicationWindow: 'February-April',
+    fit: 'Public health, biology, and psychology students',
+    description:
+      'Students support outreach, data organization, and program evaluation while learning how prevention work happens beyond the clinic.',
+    nextStep:
+      'Look for application prompts about communication, service, and interest in health equity before submitting.',
+  },
+  {
+    title: 'Dental Shadowing Fellowship',
+    organization: 'Worcester Family Dental',
+    focus: 'Dental practice exposure',
+    term: 'Rolling placements',
+    location: 'Worcester, MA',
+    format: 'In person',
+    applicationWindow: 'Year-round',
+    fit: 'Students exploring dentistry',
+    description:
+      'A lighter-commitment opportunity designed for students who want to understand the pace, teamwork, and patient education side of dentistry.',
+    nextStep:
+      'Reach out with a concise email, a brief introduction, and a few available dates for observation.',
+  },
+]
+
+const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
+
+const initialFormData: SubmissionFormData = {
+  fullName: '',
+  email: '',
+  field: '',
+  role: '',
+  organization: '',
+  location: '',
+  connectionType: '',
+  topics: '',
+  notes: '',
+  preferredContact: '',
+  mentoringInterest: '',
+}
 
 function App() {
   const [view, setView] = useState<View>('home')
@@ -165,6 +274,9 @@ function App() {
   >({})
   const [experienceDeletingById, setExperienceDeletingById] = useState<Record<string, boolean>>({})
   const experienceAuthorInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const [formData, setFormData] = useState<SubmissionFormData>(initialFormData)
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubmissionFormData, string>>>({})
+  const [isSubmitted, setIsSubmitted] = useState(false)
 
   useEffect(() => {
     let isActive = true
@@ -395,6 +507,60 @@ function App() {
       ...currentState,
       [experienceId]: false,
     }))
+  function handleInputChange(
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+  ) {
+    const { name, value } = event.target
+
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }))
+
+    setFormErrors((current) => ({
+      ...current,
+      [name]: '',
+    }))
+  }
+
+  function validateForm() {
+    const nextErrors: Partial<Record<keyof SubmissionFormData, string>> = {}
+
+    if (!formData.fullName.trim()) nextErrors.fullName = 'Please enter your name.'
+    if (!formData.email.trim()) nextErrors.email = 'Please enter your email address.'
+    if (!formData.field.trim()) nextErrors.field = 'Please enter your profession or career field.'
+    if (!formData.role.trim()) nextErrors.role = 'Please enter your current role or title.'
+    if (!formData.location.trim()) nextErrors.location = 'Please enter your location.'
+    if (!formData.connectionType.trim()) {
+      nextErrors.connectionType = 'Please select how you would like to be listed.'
+    }
+    if (!formData.topics.trim()) {
+      nextErrors.topics = 'Please share at least one area students can ask you about.'
+    }
+    if (!formData.preferredContact.trim()) {
+      nextErrors.preferredContact = 'Please choose a preferred contact method.'
+    }
+    if (!formData.mentoringInterest.trim()) {
+      nextErrors.mentoringInterest = 'Please let us know if you are willing to mentor.'
+    }
+
+    return nextErrors
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    const nextErrors = validateForm()
+
+    if (Object.keys(nextErrors).length > 0) {
+      setFormErrors(nextErrors)
+      setIsSubmitted(false)
+      return
+    }
+
+    setFormErrors({})
+    setIsSubmitted(true)
+    setFormData(initialFormData)
   }
 
   return (
@@ -509,19 +675,25 @@ function App() {
               </p>
             </div>
 
-            <label className="filter">
-              <span>Filter by field</span>
-              <select
-                value={selectedField}
-                onChange={(event) => setSelectedField(event.target.value)}
-              >
-                {fields.map((field) => (
-                  <option key={field} value={field}>
-                    {field}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <div className="directory-actions">
+              <label className="filter">
+                <span>Filter by field</span>
+                <select
+                  value={selectedField}
+                  onChange={(event) => setSelectedField(event.target.value)}
+                >
+                  {fields.map((field) => (
+                    <option key={field} value={field}>
+                      {field}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <button className="primary-button" onClick={() => setView('submit')}>
+                Submit Your Information
+              </button>
+            </div>
           </section>
 
           <section className="directory-grid">
@@ -559,6 +731,177 @@ function App() {
                 </article>
               ))
             )}
+          </section>
+        </main>
+      ) : view === 'submit' ? (
+        <main className="page">
+          <section className="submit-layout">
+            <div className="hero-copy">
+              <p className="section-label">Join the network</p>
+              <h2>Share your story so students know who they can learn from.</h2>
+              <p className="lead">
+                Alumni and health professionals can use this form to submit their information for
+                the Sattler Pre-Health Association directory. We want students to find mentors,
+                ask thoughtful questions, and better understand the paths in front of them.
+              </p>
+            </div>
+
+            <aside className="signal-card">
+              <p className="section-label">What to include</p>
+              <ul>
+                <li>Share the areas where you feel most helpful to students.</li>
+                <li>Use the notes section to mention anything that gives context to your path.</li>
+                <li>Choose how you would prefer students or club leaders to contact you.</li>
+              </ul>
+            </aside>
+          </section>
+
+          <section className="submit-form-panel">
+            <div className="submit-form-header">
+              <div>
+                <p className="section-label">Submission form</p>
+                <h3>Tell us a little about yourself.</h3>
+              </div>
+              {isSubmitted ? (
+                <p className="success-message">
+                  Thank you for submitting your information. We&apos;ll use it to help connect
+                  students with mentors and professionals they can learn from.
+                </p>
+              ) : null}
+            </div>
+
+            <form className="submit-form" onSubmit={handleSubmit} noValidate>
+              <label className="form-field">
+                <span>Full Name</span>
+                <input
+                  name="fullName"
+                  type="text"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                />
+                {formErrors.fullName ? <small>{formErrors.fullName}</small> : null}
+              </label>
+
+              <label className="form-field">
+                <span>Email Address</span>
+                <input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                />
+                {formErrors.email ? <small>{formErrors.email}</small> : null}
+              </label>
+
+              <label className="form-field">
+                <span>Profession / Career Field</span>
+                <input
+                  name="field"
+                  type="text"
+                  value={formData.field}
+                  onChange={handleInputChange}
+                />
+                {formErrors.field ? <small>{formErrors.field}</small> : null}
+              </label>
+
+              <label className="form-field">
+                <span>Current Role / Title</span>
+                <input name="role" type="text" value={formData.role} onChange={handleInputChange} />
+                {formErrors.role ? <small>{formErrors.role}</small> : null}
+              </label>
+
+              <label className="form-field">
+                <span>Organization or School</span>
+                <input
+                  name="organization"
+                  type="text"
+                  value={formData.organization}
+                  onChange={handleInputChange}
+                />
+              </label>
+
+              <label className="form-field">
+                <span>Location</span>
+                <input
+                  name="location"
+                  type="text"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                />
+                {formErrors.location ? <small>{formErrors.location}</small> : null}
+              </label>
+
+              <label className="form-field">
+                <span>Are you a Sattler alum, health professional, or both?</span>
+                <select
+                  name="connectionType"
+                  value={formData.connectionType}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select one</option>
+                  <option value="Sattler alum">Sattler alum</option>
+                  <option value="Health professional">Health professional</option>
+                  <option value="Both">Both</option>
+                </select>
+                {formErrors.connectionType ? <small>{formErrors.connectionType}</small> : null}
+              </label>
+
+              <label className="form-field form-field-wide">
+                <span>Areas students can ask you about</span>
+                <textarea
+                  name="topics"
+                  rows={4}
+                  value={formData.topics}
+                  onChange={handleInputChange}
+                />
+                {formErrors.topics ? <small>{formErrors.topics}</small> : null}
+              </label>
+
+              <label className="form-field form-field-wide">
+                <span>Short Bio / Notes</span>
+                <textarea
+                  name="notes"
+                  rows={4}
+                  value={formData.notes}
+                  onChange={handleInputChange}
+                />
+              </label>
+
+              <label className="form-field">
+                <span>Preferred contact method</span>
+                <select
+                  name="preferredContact"
+                  value={formData.preferredContact}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select one</option>
+                  <option value="Email">Email</option>
+                  <option value="Phone">Phone</option>
+                  <option value="Club leader introduction">Club leader introduction</option>
+                </select>
+                {formErrors.preferredContact ? <small>{formErrors.preferredContact}</small> : null}
+              </label>
+
+              <label className="form-field">
+                <span>Willingness to mentor students</span>
+                <select
+                  name="mentoringInterest"
+                  value={formData.mentoringInterest}
+                  onChange={handleInputChange}
+                >
+                  <option value="">Select one</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+                {formErrors.mentoringInterest ? <small>{formErrors.mentoringInterest}</small> : null}
+              </label>
+
+              <div className="form-actions form-field-wide">
+                <button className="primary-button" type="submit">
+                  Submit information
+                </button>
+              </div>
+            </form>
           </section>
         </main>
       ) : (
