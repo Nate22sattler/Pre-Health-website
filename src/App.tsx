@@ -76,6 +76,8 @@ type ExperienceDraft = {
   note: string
 }
 
+type ExperiencePanelMode = 'read' | 'share'
+
 const canDeleteExperiences = false
 
 const experienceDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -140,8 +142,8 @@ function App() {
   const [internships, setInternships] = useState<Internship[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [expandedExperienceSections, setExpandedExperienceSections] = useState<
-    Record<string, boolean>
+  const [experiencePanelModeByInternshipId, setExperiencePanelModeByInternshipId] = useState<
+    Record<string, ExperiencePanelMode | null>
   >({})
   const [experiencesByInternshipId, setExperiencesByInternshipId] = useState<
     Record<string, InternshipExperience[]>
@@ -258,33 +260,34 @@ function App() {
     }))
   }
 
-  function openExperienceSection(internshipId: string) {
-    setExpandedExperienceSections((currentState) => ({
-      ...currentState,
-      [internshipId]: true,
-    }))
-    void loadExperiencesForInternship(internshipId)
-  }
+  function toggleReadExperienceSection(internshipId: string) {
+    const nextMode =
+      experiencePanelModeByInternshipId[internshipId] === 'read' ? null : 'read'
 
-  function toggleExperienceSection(internshipId: string) {
-    const isExpanded = expandedExperienceSections[internshipId]
-
-    setExpandedExperienceSections((currentState) => ({
+    setExperiencePanelModeByInternshipId((currentState) => ({
       ...currentState,
-      [internshipId]: !isExpanded,
+      [internshipId]: nextMode,
     }))
 
-    if (!isExpanded) {
+    if (nextMode === 'read') {
       void loadExperiencesForInternship(internshipId)
     }
   }
 
   function handleShareExperience(internshipId: string) {
-    openExperienceSection(internshipId)
+    const nextMode =
+      experiencePanelModeByInternshipId[internshipId] === 'share' ? null : 'share'
 
-    window.setTimeout(() => {
-      experienceAuthorInputRefs.current[internshipId]?.focus()
-    }, 0)
+    setExperiencePanelModeByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: nextMode,
+    }))
+
+    if (nextMode === 'share') {
+      window.setTimeout(() => {
+        experienceAuthorInputRefs.current[internshipId]?.focus()
+      }, 0)
+    }
   }
 
   function handleExperienceDraftChange(
@@ -662,24 +665,34 @@ function App() {
                     <button
                       type="button"
                       className="internship-action-button"
-                      aria-expanded={expandedExperienceSections[internship.id] ? 'true' : 'false'}
-                      aria-controls={`internship-experiences-${internship.id}`}
-                      onClick={() => toggleExperienceSection(internship.id)}
+                      aria-expanded={
+                        experiencePanelModeByInternshipId[internship.id] === 'read'
+                          ? 'true'
+                          : 'false'
+                      }
+                      aria-controls={`internship-experiences-read-${internship.id}`}
+                      onClick={() => toggleReadExperienceSection(internship.id)}
                     >
                       Read experiences
                     </button>
                     <button
                       type="button"
                       className="internship-action-button internship-action-button-secondary"
+                      aria-expanded={
+                        experiencePanelModeByInternshipId[internship.id] === 'share'
+                          ? 'true'
+                          : 'false'
+                      }
+                      aria-controls={`internship-experiences-share-${internship.id}`}
                       onClick={() => handleShareExperience(internship.id)}
                     >
                       Share your experience
                     </button>
                   </div>
 
-                  {expandedExperienceSections[internship.id] ? (
+                  {experiencePanelModeByInternshipId[internship.id] === 'read' ? (
                     <section
-                      id={`internship-experiences-${internship.id}`}
+                      id={`internship-experiences-read-${internship.id}`}
                       className="internship-experiences"
                     >
                       <div className="internship-experiences-header">
@@ -732,6 +745,14 @@ function App() {
                         </div>
                       )}
 
+                    </section>
+                  ) : null}
+
+                  {experiencePanelModeByInternshipId[internship.id] === 'share' ? (
+                    <section
+                      id={`internship-experiences-share-${internship.id}`}
+                      className="internship-experiences"
+                    >
                       <form
                         className="experience-form"
                         onSubmit={(event) => handleExperienceSubmit(event, internship.id)}
