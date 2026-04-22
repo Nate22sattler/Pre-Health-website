@@ -1,6 +1,6 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
+import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
 import { supabase } from './supabaseClient'
@@ -8,6 +8,7 @@ import { supabase } from './supabaseClient'
 type View = 'home' | 'directory' | 'internships' | 'submit'
 
 type Contact = {
+  id: string
   name: string
   field: string
   role: string
@@ -17,6 +18,7 @@ type Contact = {
 }
 
 type Internship = {
+  id: string
   title: string
   organization: string
   focus: string
@@ -29,6 +31,109 @@ type Internship = {
   nextStep: string
 }
 
+type InternshipExperience = {
+  id: string
+  internshipId: string
+  authorName: string
+  note: string
+  createdAt: string
+}
+
+type ContactRow = {
+  id: string
+  name: string
+  field: string
+  role: string
+  location: string
+  connection_type: string
+  notes: string
+}
+
+type InternshipRow = {
+  id: string
+  title: string
+  organization: string
+  focus: string
+  term: string
+  location: string
+  format: string
+  application_window: string
+  fit: string
+  description: string
+  next_step: string
+}
+
+type InternshipExperienceRow = {
+  id: string
+  internship_id: string
+  author_name: string
+  note: string
+  created_at: string
+}
+
+type ExperienceDraft = {
+  authorName: string
+  note: string
+}
+
+type ExperiencePanelMode = 'read' | 'share'
+
+const canDeleteExperiences = false
+
+const experienceDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+})
+
+function createExperienceDraft(): ExperienceDraft {
+  return {
+    authorName: '',
+    note: '',
+  }
+}
+
+function mapContactRow(row: ContactRow): Contact {
+  return {
+    id: row.id,
+    name: row.name,
+    field: row.field,
+    role: row.role,
+    location: row.location,
+    connectionType: row.connection_type,
+    notes: row.notes,
+  }
+}
+
+function mapInternshipRow(row: InternshipRow): Internship {
+  return {
+    id: row.id,
+    title: row.title,
+    organization: row.organization,
+    focus: row.focus,
+    term: row.term,
+    location: row.location,
+    format: row.format,
+    applicationWindow: row.application_window,
+    fit: row.fit,
+    description: row.description,
+    nextStep: row.next_step,
+  }
+}
+
+function mapInternshipExperienceRow(row: InternshipExperienceRow): InternshipExperience {
+  return {
+    id: row.id,
+    internshipId: row.internship_id,
+    authorName: row.author_name,
+    note: row.note,
+    createdAt: row.created_at,
+  }
+}
+
+function formatExperienceDate(date: string): string {
+  return experienceDateFormatter.format(new Date(date))
+}
 type SubmissionFormData = {
   fullName: string
   email: string
@@ -142,29 +247,266 @@ const initialFormData: SubmissionFormData = {
 function App() {
   const [view, setView] = useState<View>('home')
   const [selectedField, setSelectedField] = useState('All fields')
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [internships, setInternships] = useState<Internship[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [experiencePanelModeByInternshipId, setExperiencePanelModeByInternshipId] = useState<
+    Record<string, ExperiencePanelMode | null>
+  >({})
+  const [experiencesByInternshipId, setExperiencesByInternshipId] = useState<
+    Record<string, InternshipExperience[]>
+  >({})
+  const [experienceLoadingByInternshipId, setExperienceLoadingByInternshipId] = useState<
+    Record<string, boolean>
+  >({})
+  const [experienceErrorByInternshipId, setExperienceErrorByInternshipId] = useState<
+    Record<string, string | null>
+  >({})
+  const [experienceDraftsByInternshipId, setExperienceDraftsByInternshipId] = useState<
+    Record<string, ExperienceDraft>
+  >({})
+  const [experienceFormErrorByInternshipId, setExperienceFormErrorByInternshipId] = useState<
+    Record<string, string | null>
+  >({})
+  const [experienceSubmittingByInternshipId, setExperienceSubmittingByInternshipId] = useState<
+    Record<string, boolean>
+  >({})
+  const [experienceDeletingById, setExperienceDeletingById] = useState<Record<string, boolean>>({})
+  const experienceAuthorInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [formData, setFormData] = useState<SubmissionFormData>(initialFormData)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubmissionFormData, string>>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
 
-  // Test Supabase connection
   useEffect(() => {
-    async function testConnection() {
-      const { data, error } = await supabase
-        .from('test_table')
-        .select('*')
+    let isActive = true
 
-      console.log('SUPABASE DATA:', data)
-      console.log('SUPABASE ERROR:', error)
+    async function loadData() {
+      setLoading(true)
+      setError(null)
+
+      const [
+        { data: contactRows, error: contactsError },
+        { data: internshipRows, error: internshipsError },
+      ] = await Promise.all([
+        supabase.from('contacts').select('*').order('name'),
+        supabase.from('internships').select('*').order('title'),
+      ])
+
+      if (!isActive) {
+        return
+      }
+
+      if (contactsError || internshipsError) {
+        setError(
+          contactsError?.message ?? internshipsError?.message ?? 'Unable to load data from Supabase.',
+        )
+        setLoading(false)
+        return
+      }
+
+      setContacts(((contactRows as ContactRow[] | null) ?? []).map((row: ContactRow) => mapContactRow(row)))
+      setInternships(
+        ((internshipRows as InternshipRow[] | null) ?? []).map((row: InternshipRow) =>
+          mapInternshipRow(row),
+        ),
+      )
+      setLoading(false)
     }
 
-    testConnection()
+    void loadData()
+
+    return () => {
+      isActive = false
+    }
   }, [])
+
+  const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
 
   const visibleContacts =
     selectedField === 'All fields'
       ? contacts
       : contacts.filter((contact) => contact.field === selectedField)
 
+  async function loadExperiencesForInternship(internshipId: string, forceRefresh = false) {
+    if (!forceRefresh && internshipId in experiencesByInternshipId) {
+      return
+    }
+
+    setExperienceLoadingByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: true,
+    }))
+    setExperienceErrorByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: null,
+    }))
+
+    const { data, error: experienceError } = await supabase
+      .from('internship_experiences')
+      .select('*')
+      .eq('internship_id', internshipId)
+      .order('created_at', { ascending: false })
+
+    if (experienceError) {
+      setExperienceErrorByInternshipId((currentState) => ({
+        ...currentState,
+        [internshipId]: experienceError.message,
+      }))
+      setExperienceLoadingByInternshipId((currentState) => ({
+        ...currentState,
+        [internshipId]: false,
+      }))
+      return
+    }
+
+    setExperiencesByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: ((data as InternshipExperienceRow[] | null) ?? []).map((row) =>
+        mapInternshipExperienceRow(row),
+      ),
+    }))
+    setExperienceLoadingByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: false,
+    }))
+  }
+
+  function toggleReadExperienceSection(internshipId: string) {
+    const nextMode =
+      experiencePanelModeByInternshipId[internshipId] === 'read' ? null : 'read'
+
+    setExperiencePanelModeByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: nextMode,
+    }))
+
+    if (nextMode === 'read') {
+      void loadExperiencesForInternship(internshipId)
+    }
+  }
+
+  function handleShareExperience(internshipId: string) {
+    const nextMode =
+      experiencePanelModeByInternshipId[internshipId] === 'share' ? null : 'share'
+
+    setExperiencePanelModeByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: nextMode,
+    }))
+
+    if (nextMode === 'share') {
+      window.setTimeout(() => {
+        experienceAuthorInputRefs.current[internshipId]?.focus()
+      }, 0)
+    }
+  }
+
+  function handleExperienceDraftChange(
+    internshipId: string,
+    field: keyof ExperienceDraft,
+    value: string,
+  ) {
+    setExperienceDraftsByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: {
+        ...(currentState[internshipId] ?? createExperienceDraft()),
+        [field]: value,
+      },
+    }))
+  }
+
+  async function handleExperienceSubmit(
+    event: FormEvent<HTMLFormElement>,
+    internshipId: string,
+  ) {
+    event.preventDefault()
+
+    const currentDraft = experienceDraftsByInternshipId[internshipId] ?? createExperienceDraft()
+    const authorName = currentDraft.authorName.trim()
+    const note = currentDraft.note.trim()
+
+    if (!authorName || !note) {
+      setExperienceFormErrorByInternshipId((currentState) => ({
+        ...currentState,
+        [internshipId]: 'Please enter your name and a short note before submitting.',
+      }))
+      return
+    }
+
+    setExperienceSubmittingByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: true,
+    }))
+    setExperienceFormErrorByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: null,
+    }))
+
+    const { error: insertError } = await supabase.from('internship_experiences').insert({
+      internship_id: internshipId,
+      author_name: authorName,
+      note,
+    })
+
+    if (insertError) {
+      setExperienceSubmittingByInternshipId((currentState) => ({
+        ...currentState,
+        [internshipId]: false,
+      }))
+      setExperienceFormErrorByInternshipId((currentState) => ({
+        ...currentState,
+        [internshipId]: insertError.message,
+      }))
+      return
+    }
+
+    setExperienceDraftsByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: createExperienceDraft(),
+    }))
+
+    await loadExperiencesForInternship(internshipId, true)
+
+    setExperienceSubmittingByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: false,
+    }))
+  }
+
+  async function handleExperienceDelete(internshipId: string, experienceId: string) {
+    setExperienceDeletingById((currentState) => ({
+      ...currentState,
+      [experienceId]: true,
+    }))
+    setExperienceErrorByInternshipId((currentState) => ({
+      ...currentState,
+      [internshipId]: null,
+    }))
+
+    const { error: deleteError } = await supabase
+      .from('internship_experiences')
+      .delete()
+      .eq('id', experienceId)
+
+    if (deleteError) {
+      setExperienceDeletingById((currentState) => ({
+        ...currentState,
+        [experienceId]: false,
+      }))
+      setExperienceErrorByInternshipId((currentState) => ({
+        ...currentState,
+        [internshipId]: deleteError.message,
+      }))
+      return
+    }
+
+    await loadExperiencesForInternship(internshipId, true)
+
+    setExperienceDeletingById((currentState) => ({
+      ...currentState,
+      [experienceId]: false,
+    }))
   function handleInputChange(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) {
@@ -355,26 +697,40 @@ function App() {
           </section>
 
           <section className="directory-grid">
-            {visibleContacts.map((contact) => (
-              <article key={contact.name} className="contact-card">
-                <div className="contact-header">
-                  <p className="contact-field">{contact.field}</p>
-                  <h3>{contact.name}</h3>
-                </div>
-                <p className="contact-role">{contact.role}</p>
-                <dl className="contact-meta">
-                  <div>
-                    <dt>Location</dt>
-                    <dd>{contact.location}</dd>
-                  </div>
-                  <div>
-                    <dt>Best for</dt>
-                    <dd>{contact.connectionType}</dd>
-                  </div>
-                </dl>
-                <p className="contact-notes">{contact.notes}</p>
+            {loading ? (
+              <article className="content-card status-card">
+                <p>Loading alumni contacts...</p>
               </article>
-            ))}
+            ) : error ? (
+              <article className="content-card status-card">
+                <p>{error}</p>
+              </article>
+            ) : visibleContacts.length === 0 ? (
+              <article className="content-card status-card">
+                <p>No contacts available yet.</p>
+              </article>
+            ) : (
+              visibleContacts.map((contact) => (
+                <article key={contact.id} className="contact-card">
+                  <div className="contact-header">
+                    <p className="contact-field">{contact.field}</p>
+                    <h3>{contact.name}</h3>
+                  </div>
+                  <p className="contact-role">{contact.role}</p>
+                  <dl className="contact-meta">
+                    <div>
+                      <dt>Location</dt>
+                      <dd>{contact.location}</dd>
+                    </div>
+                    <div>
+                      <dt>Best for</dt>
+                      <dd>{contact.connectionType}</dd>
+                    </div>
+                  </dl>
+                  <p className="contact-notes">{contact.notes}</p>
+                </article>
+              ))
+            )}
           </section>
         </main>
       ) : view === 'submit' ? (
@@ -553,11 +909,11 @@ function App() {
           <section className="internships-hero">
             <div className="hero-copy">
               <p className="section-label">Internship guide</p>
-              <h2>Find early experiences that help you test your direction.</h2>
+              <h2>Where ambition meets innovation. Find a world-class internship that shapes your future.</h2>
               <p className="lead">
-                This page gives students a simple starting point for exploring internships
-                across clinical, research, and community health settings. Each opportunity
-                highlights what it is best for, when to apply, and how to prepare.
+                Start exploring internships across clinical, research, 
+                and community health settings—each opportunity is designed 
+                to help you understand its fit, timing, and how to prepare.
               </p>
             </div>
 
@@ -592,50 +948,221 @@ function App() {
           </section>
 
           <section className="internships-list">
-            {internships.map((internship) => (
-              <article key={internship.title} className="internship-card">
-                <div className="internship-header">
-                  <div>
-                    <p className="contact-field">{internship.focus}</p>
-                    <h3>{internship.title}</h3>
-                  </div>
-                  <p className="internship-organization">{internship.organization}</p>
-                </div>
-
-                <p className="internship-description">{internship.description}</p>
-
-                <div className="internship-table-wrapper">
-                  <table className="internship-table">
-                    <tbody>
-                      <tr>
-                        <th scope="row">Term</th>
-                        <td>{internship.term}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Location</th>
-                        <td>{internship.location}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Format</th>
-                        <td>{internship.format}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Apply</th>
-                        <td>{internship.applicationWindow}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Best fit</th>
-                        <td>{internship.fit}</td>
-                      </tr>
-                      <tr>
-                        <th scope="row">Next step</th>
-                        <td>{internship.nextStep}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+            {loading ? (
+              <article className="content-card status-card">
+                <p>Loading internships...</p>
               </article>
-            ))}
+            ) : error ? (
+              <article className="content-card status-card">
+                <p>{error}</p>
+              </article>
+            ) : internships.length === 0 ? (
+              <article className="content-card status-card">
+                <p>No internships available yet.</p>
+              </article>
+            ) : (
+              internships.map((internship) => (
+                <article key={internship.id} className="internship-card">
+                  <div className="internship-header">
+                    <div>
+                      <p className="contact-field">{internship.focus}</p>
+                      <h3>{internship.title}</h3>
+                    </div>
+                    <p className="internship-organization">{internship.organization}</p>
+                  </div>
+
+                  <p className="internship-description">{internship.description}</p>
+
+                  <div className="internship-table-wrapper">
+                    <table className="internship-table">
+                      <tbody>
+                        <tr>
+                          <th scope="row">Term</th>
+                          <td>{internship.term}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Location</th>
+                          <td>{internship.location}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Format</th>
+                          <td>{internship.format}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Apply</th>
+                          <td>{internship.applicationWindow}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Best fit</th>
+                          <td>{internship.fit}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Next step</th>
+                          <td>{internship.nextStep}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="internship-actions">
+                    <button
+                      type="button"
+                      className="internship-action-button"
+                      aria-expanded={
+                        experiencePanelModeByInternshipId[internship.id] === 'read'
+                          ? 'true'
+                          : 'false'
+                      }
+                      aria-controls={`internship-experiences-read-${internship.id}`}
+                      onClick={() => toggleReadExperienceSection(internship.id)}
+                    >
+                      Read experiences
+                    </button>
+                    <button
+                      type="button"
+                      className="internship-action-button internship-action-button-secondary"
+                      aria-expanded={
+                        experiencePanelModeByInternshipId[internship.id] === 'share'
+                          ? 'true'
+                          : 'false'
+                      }
+                      aria-controls={`internship-experiences-share-${internship.id}`}
+                      onClick={() => handleShareExperience(internship.id)}
+                    >
+                      Share your experience
+                    </button>
+                  </div>
+
+                  {experiencePanelModeByInternshipId[internship.id] === 'read' ? (
+                    <section
+                      id={`internship-experiences-read-${internship.id}`}
+                      className="internship-experiences"
+                    >
+                      <div className="internship-experiences-header">
+                        <div>
+                          <p className="section-label">Student reflections</p>
+                          <h4>Experiences from students who have explored this opportunity</h4>
+                        </div>
+                        <p className="internship-experiences-count">
+                          {(experiencesByInternshipId[internship.id] ?? []).length} shared
+                        </p>
+                      </div>
+
+                      {experienceErrorByInternshipId[internship.id] ? (
+                        <p className="experience-feedback experience-feedback-error">
+                          {experienceErrorByInternshipId[internship.id]}
+                        </p>
+                      ) : null}
+
+                      {experienceLoadingByInternshipId[internship.id] ? (
+                        <p className="experience-state">Loading experiences...</p>
+                      ) : (experiencesByInternshipId[internship.id] ?? []).length === 0 ? (
+                        <p className="experience-state">No experiences shared yet.</p>
+                      ) : (
+                        <div className="experience-list">
+                          {(experiencesByInternshipId[internship.id] ?? []).map((experience) => (
+                            <article key={experience.id} className="experience-entry">
+                              <div className="experience-entry-header">
+                                <div>
+                                  <h5>{experience.authorName}</h5>
+                                  <p>{formatExperienceDate(experience.createdAt)}</p>
+                                </div>
+                                {canDeleteExperiences ? (
+                                  <button
+                                    type="button"
+                                    className="experience-delete-button"
+                                    disabled={experienceDeletingById[experience.id]}
+                                    onClick={() =>
+                                      handleExperienceDelete(internship.id, experience.id)
+                                    }
+                                  >
+                                    {experienceDeletingById[experience.id]
+                                      ? 'Deleting...'
+                                      : 'Delete'}
+                                  </button>
+                                ) : null}
+                              </div>
+                              <p className="experience-note">{experience.note}</p>
+                            </article>
+                          ))}
+                        </div>
+                      )}
+
+                    </section>
+                  ) : null}
+
+                  {experiencePanelModeByInternshipId[internship.id] === 'share' ? (
+                    <section
+                      id={`internship-experiences-share-${internship.id}`}
+                      className="internship-experiences"
+                    >
+                      <form
+                        className="experience-form"
+                        onSubmit={(event) => handleExperienceSubmit(event, internship.id)}
+                      >
+                        <div className="experience-form-header">
+                          <h5>Share your experience</h5>
+                          <p>Leave a short note for the next student looking at this internship.</p>
+                        </div>
+
+                        <label className="experience-form-field">
+                          <span>Your name</span>
+                          <input
+                            ref={(element) => {
+                              experienceAuthorInputRefs.current[internship.id] = element
+                            }}
+                            type="text"
+                            value={
+                              (experienceDraftsByInternshipId[internship.id] ??
+                                createExperienceDraft()).authorName
+                            }
+                            onChange={(event) =>
+                              handleExperienceDraftChange(
+                                internship.id,
+                                'authorName',
+                                event.target.value,
+                              )
+                            }
+                            placeholder="Ex. Rachel K."
+                          />
+                        </label>
+
+                        <label className="experience-form-field">
+                          <span>Your note</span>
+                          <textarea
+                            rows={4}
+                            value={
+                              (experienceDraftsByInternshipId[internship.id] ??
+                                createExperienceDraft()).note
+                            }
+                            onChange={(event) =>
+                              handleExperienceDraftChange(internship.id, 'note', event.target.value)
+                            }
+                            placeholder="What was helpful, surprising, or worth knowing ahead of time?"
+                          />
+                        </label>
+
+                        {experienceFormErrorByInternshipId[internship.id] ? (
+                          <p className="experience-feedback experience-feedback-error">
+                            {experienceFormErrorByInternshipId[internship.id]}
+                          </p>
+                        ) : null}
+
+                        <button
+                          type="submit"
+                          className="experience-submit-button"
+                          disabled={experienceSubmittingByInternshipId[internship.id]}
+                        >
+                          {experienceSubmittingByInternshipId[internship.id]
+                            ? 'Submitting...'
+                            : 'Submit experience'}
+                        </button>
+                      </form>
+                    </section>
+                  ) : null}
+                </article>
+              ))
+            )}
           </section>
         </main>
       )}
