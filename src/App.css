@@ -231,9 +231,17 @@
   margin-top: 28px;
 }
 
+.status-card {
+  grid-column: 1 / -1;
+}
+
 .internship-overview,
 .internships-list {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.internships-list {
+  align-items: start;
 }
 
 .contact-header {
@@ -316,6 +324,155 @@
   color: var(--text);
 }
 
+.internship-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 22px;
+}
+
+.internship-action-button,
+.experience-submit-button,
+.experience-delete-button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.internship-action-button,
+.experience-delete-button {
+  padding: 10px 16px;
+  background: white;
+  color: var(--ink);
+}
+
+.internship-action-button:hover,
+.experience-submit-button:hover,
+.experience-delete-button:hover {
+  transform: translateY(-1px);
+}
+
+.internship-action-button-secondary {
+  background: rgba(26, 51, 95, 0.08);
+}
+
+.internship-experiences {
+  display: grid;
+  gap: 18px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.internship-experiences-header,
+.experience-entry-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+}
+
+.internship-experiences-header h4,
+.experience-entry-header h5,
+.experience-form-header h5 {
+  margin: 0;
+}
+
+.internship-experiences-count,
+.experience-entry-header p,
+.experience-form-header p,
+.experience-state {
+  margin: 0;
+  color: var(--muted);
+}
+
+.experience-list {
+  display: grid;
+  gap: 14px;
+}
+
+.experience-entry,
+.experience-form {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.experience-entry {
+  padding: 18px 20px;
+}
+
+.experience-note {
+  margin: 14px 0 0;
+  color: var(--muted);
+}
+
+.experience-form {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.experience-form-header {
+  display: grid;
+  gap: 6px;
+}
+
+.experience-form-field {
+  display: grid;
+  gap: 8px;
+}
+
+.experience-form-field span {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.experience-form-field input,
+.experience-form-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: white;
+  color: var(--text);
+  font: inherit;
+  padding: 12px 14px;
+}
+
+.experience-form-field textarea {
+  resize: vertical;
+  min-height: 112px;
+}
+
+.experience-submit-button {
+  justify-self: start;
+  padding: 12px 18px;
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.experience-feedback {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.experience-feedback-error {
+  color: #a33b2f;
+}
+
+.experience-submit-button:disabled,
+.experience-delete-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 @media (max-width: 900px) {
   .topbar,
   .directory-header {
@@ -349,6 +506,11 @@
   }
 
   .internship-header {
+    flex-direction: column;
+  }
+
+  .internship-experiences-header,
+  .experience-entry-header {
     flex-direction: column;
   }
 
