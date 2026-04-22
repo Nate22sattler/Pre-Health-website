@@ -148,88 +148,6 @@ type SubmissionFormData = {
   mentoringInterest: string
 }
 
-const contacts: Contact[] = [
-  {
-    name: 'Rachel Kim',
-    field: 'Medicine',
-    role: 'MS2, University of Rochester School of Medicine',
-    location: 'New York',
-    connectionType: 'Medical school',
-    notes: 'Happy to speak with pre-med students about gap years, applications, and interviews.',
-  },
-  {
-    name: 'Daniel Owusu',
-    field: 'Physical Therapy',
-    role: 'Physical Therapist, Hartford HealthCare',
-    location: 'Connecticut',
-    connectionType: 'Clinical career',
-    notes: 'Can share what clinical rotations are like and how to compare PT programs.',
-  },
-  {
-    name: 'Mia Hernandez',
-    field: 'Public Health',
-    role: 'Program Coordinator, Boston community health nonprofit',
-    location: 'Massachusetts',
-    connectionType: 'Public health',
-    notes: 'Interested in mentoring students exploring community health and policy work.',
-  },
-  {
-    name: 'Nathan Brooks',
-    field: 'Dentistry',
-    role: 'D1, Tufts University School of Dental Medicine',
-    location: 'Massachusetts',
-    connectionType: 'Dental school',
-    notes: 'Can answer questions about shadowing, DAT prep, and choosing between schools.',
-  },
-]
-
-const internships: Internship[] = [
-  {
-    title: 'Hospital Volunteer Internship',
-    organization: 'Boston Medical Center',
-    focus: 'Clinical exposure',
-    term: 'Summer',
-    location: 'Boston, MA',
-    format: 'In person',
-    applicationWindow: 'January-March',
-    fit: 'Pre-med and pre-PA students',
-    description:
-      'A structured placement that helps students observe patient-facing environments, build professionalism, and reflect on clinical calling.',
-    nextStep:
-      'Prepare a short resume, ask for one reference, and be ready to explain why direct service matters to you.',
-  },
-  {
-    title: 'Public Health Research Internship',
-    organization: 'Massachusetts Department of Public Health',
-    focus: 'Community health and policy',
-    term: 'Summer or semester',
-    location: 'Hybrid',
-    format: 'Hybrid',
-    applicationWindow: 'February-April',
-    fit: 'Public health, biology, and psychology students',
-    description:
-      'Students support outreach, data organization, and program evaluation while learning how prevention work happens beyond the clinic.',
-    nextStep:
-      'Look for application prompts about communication, service, and interest in health equity before submitting.',
-  },
-  {
-    title: 'Dental Shadowing Fellowship',
-    organization: 'Worcester Family Dental',
-    focus: 'Dental practice exposure',
-    term: 'Rolling placements',
-    location: 'Worcester, MA',
-    format: 'In person',
-    applicationWindow: 'Year-round',
-    fit: 'Students exploring dentistry',
-    description:
-      'A lighter-commitment opportunity designed for students who want to understand the pace, teamwork, and patient education side of dentistry.',
-    nextStep:
-      'Reach out with a concise email, a brief introduction, and a few available dates for observation.',
-  },
-]
-
-const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
-
 const initialFormData: SubmissionFormData = {
   fullName: '',
   email: '',
@@ -507,6 +425,8 @@ function App() {
       ...currentState,
       [experienceId]: false,
     }))
+  }
+
   function handleInputChange(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) {
