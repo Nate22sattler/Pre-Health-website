@@ -849,8 +849,8 @@ function App() {
 
           <section className="internship-overview">
             <article className="content-card">
-              <p className="section-label">Why internships matter</p>
-              <h3>They help students move from general interest to informed commitment.</h3>
+              <p className="section-label">Internships matter</p>
+              <h3>Internships are an opportunity to get experience and build your resume.</h3>
               <p>
                 Good internships give more than a line on a resume. They help students see
                 workflows, ask better questions, and notice which settings energize them.
