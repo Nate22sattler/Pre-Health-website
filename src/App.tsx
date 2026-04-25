@@ -306,6 +306,13 @@ function App() {
   const [contactEditDraft, setContactEditDraft] = useState<ContactEditDraft | null>(null)
   const [contactSavingById, setContactSavingById] = useState<Record<string, boolean>>({})
   const [contactDeletingById, setContactDeletingById] = useState<Record<string, boolean>>({})
+  const [editingInternshipId, setEditingInternshipId] = useState<string | null>(null)
+  const [internshipEditDraft, setInternshipEditDraft] = useState<Omit<Internship, 'id'> | null>(null)
+  const [internshipSavingById, setInternshipSavingById] = useState<Record<string, boolean>>({})
+  const [internshipDeletingById, setInternshipDeletingById] = useState<Record<string, boolean>>({})
+  const [editingExperienceId, setEditingExperienceId] = useState<string | null>(null)
+  const [experienceEditDraft, setExperienceEditDraft] = useState('')
+  const [experienceSavingById, setExperienceSavingById] = useState<Record<string, boolean>>({})
   const experienceAuthorInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [formData, setFormData] = useState<SubmissionFormData>(initialFormData)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubmissionFormData, string>>>({})
@@ -440,6 +447,13 @@ function App() {
       setExperienceFormErrorByInternshipId({})
       setExperienceSubmittingByInternshipId({})
       setExperienceDeletingById({})
+      setEditingInternshipId(null)
+      setInternshipEditDraft(null)
+      setInternshipSavingById({})
+      setInternshipDeletingById({})
+      setEditingExperienceId(null)
+      setExperienceEditDraft('')
+      setExperienceSavingById({})
       return
     }
 
@@ -780,6 +794,124 @@ function App() {
     }
 
     setContacts((current) => current.filter((c) => c.id !== contactId))
+  }
+
+  function handleInternshipEditStart(internship: Internship) {
+    setEditingInternshipId(internship.id)
+    setInternshipEditDraft({
+      title: internship.title,
+      organization: internship.organization,
+      focus: internship.focus,
+      term: internship.term,
+      location: internship.location,
+      format: internship.format,
+      applicationWindow: internship.applicationWindow,
+      fit: internship.fit,
+      description: internship.description,
+      nextStep: internship.nextStep,
+    })
+  }
+
+  function handleInternshipEditCancel() {
+    setEditingInternshipId(null)
+    setInternshipEditDraft(null)
+  }
+
+  function handleInternshipEditDraftChange(field: keyof Omit<Internship, 'id'>, value: string) {
+    setInternshipEditDraft((current) => (current ? { ...current, [field]: value } : current))
+  }
+
+  async function handleInternshipEditSave(internshipId: string) {
+    if (!internshipEditDraft) {
+      return
+    }
+
+    setInternshipSavingById((current) => ({ ...current, [internshipId]: true }))
+
+    const { error: updateError } = await supabase
+      .from('internships')
+      .update({
+        title: internshipEditDraft.title,
+        organization: internshipEditDraft.organization,
+        focus: internshipEditDraft.focus,
+        term: internshipEditDraft.term,
+        location: internshipEditDraft.location,
+        format: internshipEditDraft.format,
+        application_window: internshipEditDraft.applicationWindow,
+        fit: internshipEditDraft.fit,
+        description: internshipEditDraft.description,
+        next_step: internshipEditDraft.nextStep,
+      })
+      .eq('id', internshipId)
+
+    setInternshipSavingById((current) => ({ ...current, [internshipId]: false }))
+
+    if (updateError) {
+      return
+    }
+
+    setInternships((current) =>
+      current.map((i) =>
+        i.id === internshipId ? { id: internshipId, ...internshipEditDraft } : i,
+      ),
+    )
+    setEditingInternshipId(null)
+    setInternshipEditDraft(null)
+  }
+
+  async function handleInternshipDelete(internshipId: string) {
+    if (!window.confirm('Delete this internship? This cannot be undone.')) {
+      return
+    }
+
+    setInternshipDeletingById((current) => ({ ...current, [internshipId]: true }))
+
+    const { error: deleteError } = await supabase
+      .from('internships')
+      .delete()
+      .eq('id', internshipId)
+
+    setInternshipDeletingById((current) => ({ ...current, [internshipId]: false }))
+
+    if (deleteError) {
+      return
+    }
+
+    setInternships((current) => current.filter((i) => i.id !== internshipId))
+  }
+
+  function handleExperienceEditStart(experience: InternshipExperience) {
+    setEditingExperienceId(experience.id)
+    setExperienceEditDraft(experience.note)
+  }
+
+  function handleExperienceEditCancel() {
+    setEditingExperienceId(null)
+    setExperienceEditDraft('')
+  }
+
+  async function handleExperienceEditSave(internshipId: string, experienceId: string) {
+    setExperienceSavingById((current) => ({ ...current, [experienceId]: true }))
+
+    const { error: updateError } = await supabase
+      .from('internship_experiences')
+      .update({ note: experienceEditDraft })
+      .eq('id', experienceId)
+
+    setExperienceSavingById((current) => ({ ...current, [experienceId]: false }))
+
+    if (updateError) {
+      return
+    }
+
+    setExperiencesByInternshipId((current) => ({
+      ...current,
+      [internshipId]: (current[internshipId] ?? []).map((e) =>
+        e.id === experienceId ? { ...e, note: experienceEditDraft } : e,
+      ),
+    }))
+    setEditingExperienceId(null)
+    setExperienceEditDraft('')
   }
 
   function handleInputChange(
@@ -1363,6 +1495,125 @@ function App() {
             ) : (
               internships.map((internship) => (
                 <article key={internship.id} className="internship-card">
+                  {editingInternshipId === internship.id && internshipEditDraft ? (
+                    <>
+                      <div className="internship-header">
+                        <p className="section-label">Edit internship</p>
+                      </div>
+                      <label className="experience-form-field">
+                        <span>Title</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.title}
+                          onChange={(e) => handleInternshipEditDraftChange('title', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Organization</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.organization}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('organization', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Focus</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.focus}
+                          onChange={(e) => handleInternshipEditDraftChange('focus', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Term</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.term}
+                          onChange={(e) => handleInternshipEditDraftChange('term', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Location</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.location}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('location', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Format</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.format}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('format', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Application window</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.applicationWindow}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('applicationWindow', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Best fit</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.fit}
+                          onChange={(e) => handleInternshipEditDraftChange('fit', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Description</span>
+                        <textarea
+                          rows={3}
+                          value={internshipEditDraft.description}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('description', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Next step</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.nextStep}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('nextStep', e.target.value)
+                          }
+                        />
+                      </label>
+                      <div className="internship-admin-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          disabled={internshipSavingById[internship.id]}
+                          onClick={() => {
+                            void handleInternshipEditSave(internship.id)
+                          }}
+                        >
+                          {internshipSavingById[internship.id] ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          className="nav-link"
+                          onClick={handleInternshipEditCancel}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
                   <div className="internship-header">
                     <div>
                       <p className="contact-field">{internship.focus}</p>
@@ -1403,6 +1654,28 @@ function App() {
                       </tbody>
                     </table>
                   </div>
+
+                  {isAdmin ? (
+                    <div className="internship-admin-actions">
+                      <button
+                        type="button"
+                        className="experience-delete-button"
+                        onClick={() => handleInternshipEditStart(internship)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="experience-delete-button"
+                        disabled={internshipDeletingById[internship.id]}
+                        onClick={() => {
+                          void handleInternshipDelete(internship.id)
+                        }}
+                      >
+                        {internshipDeletingById[internship.id] ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  ) : null}
 
                   <div className="internship-actions">
                     <button
@@ -1468,21 +1741,62 @@ function App() {
                                   <p>{formatExperienceDate(experience.createdAt)}</p>
                                 </div>
                                 {experience.userId === session?.user?.id || isAdmin ? (
-                                  <button
-                                    type="button"
-                                    className="experience-delete-button"
-                                    disabled={experienceDeletingById[experience.id]}
-                                    onClick={() =>
-                                      handleExperienceDelete(internship.id, experience.id)
-                                    }
-                                  >
-                                    {experienceDeletingById[experience.id]
-                                      ? 'Deleting...'
-                                      : 'Delete'}
-                                  </button>
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    {editingExperienceId !== experience.id ? (
+                                      <button
+                                        type="button"
+                                        className="experience-delete-button"
+                                        onClick={() => handleExperienceEditStart(experience)}
+                                      >
+                                        Edit
+                                      </button>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      className="experience-delete-button"
+                                      disabled={experienceDeletingById[experience.id]}
+                                      onClick={() =>
+                                        handleExperienceDelete(internship.id, experience.id)
+                                      }
+                                    >
+                                      {experienceDeletingById[experience.id]
+                                        ? 'Deleting...'
+                                        : 'Delete'}
+                                    </button>
+                                  </div>
                                 ) : null}
                               </div>
-                              <p className="experience-note">{experience.note}</p>
+                              {editingExperienceId === experience.id ? (
+                                <>
+                                  <textarea
+                                    className="experience-form-field"
+                                    rows={4}
+                                    value={experienceEditDraft}
+                                    onChange={(e) => setExperienceEditDraft(e.target.value)}
+                                  />
+                                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                    <button
+                                      type="button"
+                                      className="primary-button"
+                                      disabled={experienceSavingById[experience.id]}
+                                      onClick={() => {
+                                        void handleExperienceEditSave(internship.id, experience.id)
+                                      }}
+                                    >
+                                      {experienceSavingById[experience.id] ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="nav-link"
+                                      onClick={handleExperienceEditCancel}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <p className="experience-note">{experience.note}</p>
+                              )}
                             </article>
                           ))}
                         </div>
@@ -1560,6 +1874,8 @@ function App() {
                       </form>
                     </section>
                   ) : null}
+                    </>
+                  )}
                 </article>
               ))
             )}

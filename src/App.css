@@ -452,7 +452,8 @@
   margin: 4px 0 0;
 }
 
-.contact-admin-actions {
+.contact-admin-actions,
+.internship-admin-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
