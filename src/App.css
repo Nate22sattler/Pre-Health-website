@@ -31,6 +31,31 @@
   flex-wrap: wrap;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  justify-content: end;
+  flex-wrap: wrap;
+}
+
+.session-tools {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.session-badge {
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
 .nav-link,
 .primary-button,
 .filter select {
@@ -66,8 +91,69 @@
   border-color: var(--ink);
 }
 
+.nav-link:disabled,
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  transform: none;
+}
+
 .page {
   padding: 32px 48px 56px;
+}
+
+.auth-screen {
+  display: grid;
+  place-items: center;
+}
+
+.auth-panel {
+  width: min(100%, 1080px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 24px;
+  align-items: stretch;
+}
+
+.auth-copy {
+  gap: 18px;
+}
+
+.auth-aside {
+  align-content: start;
+}
+
+.auth-actions {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+  margin-top: 12px;
+}
+
+.auth-note,
+.auth-loading-state {
+  margin: 0;
+  color: var(--muted);
+  max-width: 48ch;
+}
+
+.auth-loading-state {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.auth-feedback {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+
+.auth-feedback-error {
+  border: 1px solid rgba(163, 59, 47, 0.18);
+  background: rgba(255, 243, 239, 0.88);
+  color: #8a2f24;
 }
 
 .hero-panel {
@@ -250,6 +336,8 @@
 
 .internships-list {
   align-items: start;
+}
+
 .submit-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.85fr);
@@ -567,7 +655,9 @@
 
 @media (max-width: 900px) {
   .topbar,
-  .directory-header {
+  .directory-header,
+  .topbar-actions,
+  .session-tools {
     align-items: start;
     flex-direction: column;
   }
@@ -579,6 +669,7 @@
   }
 
   .hero-panel,
+  .auth-panel,
   .content-grid,
   .directory-grid,
   .internships-hero,
@@ -615,6 +706,12 @@
   }
 
   .directory-actions {
+    width: 100%;
+    justify-content: start;
+  }
+
+  .topbar-actions,
+  .session-tools {
     width: 100%;
     justify-content: start;
   }

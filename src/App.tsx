@@ -1,8 +1,15 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
 import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
+import {
+  ALLOWED_EMAIL_DOMAIN_LABEL,
+  getInstitutionalAccessMessage,
+  isAllowedInstitutionEmail,
+  readAuthCallbackError,
+} from './auth'
 import { supabase } from './supabaseClient'
 
 type View = 'home' | 'directory' | 'internships' | 'submit'
@@ -162,8 +169,108 @@ const initialFormData: SubmissionFormData = {
   mentoringInterest: '',
 }
 
+type AuthGateScreenProps = {
+  error: string | null
+  isSigningIn: boolean
+  onSignIn: () => void
+}
+
+function AuthLoadingScreen() {
+  return (
+    <div className="site-shell">
+      <main className="page auth-screen">
+        <section className="auth-panel">
+          <div className="hero-copy auth-copy">
+            <p className="section-label">Private community access</p>
+            <h2>Checking your Sattler access.</h2>
+            <p className="lead">
+              We&apos;re verifying your session so the site can stay private to institutional
+              members.
+            </p>
+            <p className="auth-loading-state">Loading secure access...</p>
+          </div>
+
+          <aside className="brand-panel auth-aside">
+            <div className="brand-panel-frame">
+              <img
+                className="brand-logo"
+                src={preHealthLogo}
+                alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+              />
+            </div>
+            <div className="brand-panel-copy">
+              <h3>Trusted access only</h3>
+              <p>
+                This space is reserved for the Sattler pre-health community so students can share
+                resources and reflections with confidence.
+              </p>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+  )
+}
+
+function AuthGateScreen({ error, isSigningIn, onSignIn }: AuthGateScreenProps) {
+  return (
+    <div className="site-shell">
+      <main className="page auth-screen">
+        <section className="auth-panel">
+          <div className="hero-copy auth-copy">
+            <p className="section-label">Private community access</p>
+            <h2>Sign in with your Sattler Google account.</h2>
+            <p className="lead">
+              The directory, internship guide, and shared reflections are only available to
+              approved institutional users.
+            </p>
+
+            <div className="auth-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={onSignIn}
+                disabled={isSigningIn}
+              >
+                {isSigningIn ? 'Redirecting to Google...' : 'Continue with Google'}
+              </button>
+              <p className="auth-note">
+                Only Google accounts with an <strong>{ALLOWED_EMAIL_DOMAIN_LABEL}</strong> email
+                address can access this site.
+              </p>
+            </div>
+
+            {error ? <p className="auth-feedback auth-feedback-error">{error}</p> : null}
+          </div>
+
+          <aside className="brand-panel auth-aside">
+            <div className="brand-panel-frame">
+              <img
+                className="brand-logo"
+                src={preHealthLogo}
+                alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+              />
+            </div>
+            <div className="brand-panel-copy">
+              <h3>Why the gate?</h3>
+              <p>
+                We&apos;re protecting contact details and student reflections by limiting access to
+                trusted institutional accounts.
+              </p>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+  )
+}
+
 function App() {
   const [view, setView] = useState<View>('home')
+  const [session, setSession] = useState<Session | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [isSigningIn, setIsSigningIn] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
   const [selectedField, setSelectedField] = useState('All fields')
   const [contacts, setContacts] = useState<Contact[]>([])
   const [internships, setInternships] = useState<Internship[]>([])
@@ -197,6 +304,123 @@ function App() {
   const [isSubmitted, setIsSubmitted] = useState(false)
 
   useEffect(() => {
+    let isActive = true
+    const callbackError = readAuthCallbackError()
+
+    if (callbackError) {
+      setAuthError(callbackError)
+    }
+
+    async function syncApprovedSession(
+      nextSession: Session | null,
+      preserveExistingErrorOnEmptySession = false,
+    ) {
+      if (!nextSession) {
+        if (!isActive) {
+          return
+        }
+
+        setSession(null)
+        setAuthLoading(false)
+        setIsSigningIn(false)
+
+        if (!preserveExistingErrorOnEmptySession) {
+          setAuthError(null)
+        }
+
+        return
+      }
+
+      if (isAllowedInstitutionEmail(nextSession.user.email)) {
+        if (!isActive) {
+          return
+        }
+
+        setSession(nextSession)
+        setAuthError(null)
+        setAuthLoading(false)
+        setIsSigningIn(false)
+        return
+      }
+
+      const invalidAccessMessage = getInstitutionalAccessMessage()
+      setAuthError(invalidAccessMessage)
+
+      const { error: signOutError } = await supabase.auth.signOut()
+
+      if (!isActive) {
+        return
+      }
+
+      setSession(null)
+      setAuthLoading(false)
+      setIsSigningIn(false)
+
+      if (signOutError) {
+        setAuthError(
+          `${invalidAccessMessage} We also ran into trouble clearing the session. Please refresh and try again.`,
+        )
+      }
+    }
+
+    async function initializeAuth() {
+      const {
+        data: { session: existingSession },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (!isActive) {
+        return
+      }
+
+      if (sessionError) {
+        setSession(null)
+        setAuthError(sessionError.message)
+        setAuthLoading(false)
+        setIsSigningIn(false)
+        return
+      }
+
+      await syncApprovedSession(existingSession, Boolean(callbackError))
+    }
+
+    void initializeAuth()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void syncApprovedSession(nextSession, true)
+    })
+
+    return () => {
+      isActive = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!session) {
+      setView('home')
+      setSelectedField('All fields')
+      setContacts([])
+      setInternships([])
+      setLoading(false)
+      setError(null)
+      setExperiencePanelModeByInternshipId({})
+      setExperiencesByInternshipId({})
+      setExperienceLoadingByInternshipId({})
+      setExperienceErrorByInternshipId({})
+      setExperienceDraftsByInternshipId({})
+      setExperienceFormErrorByInternshipId({})
+      setExperienceSubmittingByInternshipId({})
+      setExperienceDeletingById({})
+      return
+    }
+
     let isActive = true
 
     async function loadData() {
@@ -237,7 +461,7 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [authLoading, session])
 
   const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
 
@@ -245,6 +469,40 @@ function App() {
     selectedField === 'All fields'
       ? contacts
       : contacts.filter((contact) => contact.field === selectedField)
+
+  const signedInUserEmail = session?.user.email ?? null
+
+  async function handleGoogleSignIn() {
+    setAuthError(null)
+    setIsSigningIn(true)
+
+    const redirectUrl = new URL(window.location.href)
+    redirectUrl.search = ''
+    redirectUrl.hash = ''
+
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl.toString(),
+      },
+    })
+
+    if (signInError) {
+      setAuthError(signInError.message)
+      setIsSigningIn(false)
+    }
+  }
+
+  async function handleSignOut() {
+    setAuthError(null)
+    setView('home')
+
+    const { error: signOutError } = await supabase.auth.signOut()
+
+    if (signOutError) {
+      setAuthError(signOutError.message)
+    }
+  }
 
   async function loadExperiencesForInternship(internshipId: string, forceRefresh = false) {
     if (!forceRefresh && internshipId in experiencesByInternshipId) {
@@ -483,6 +741,14 @@ function App() {
     setFormData(initialFormData)
   }
 
+  if (authLoading) {
+    return <AuthLoadingScreen />
+  }
+
+  if (!session) {
+    return <AuthGateScreen error={authError} isSigningIn={isSigningIn} onSignIn={handleGoogleSignIn} />
+  }
+
   return (
     <div className="site-shell">
       <header className="topbar">
@@ -490,26 +756,41 @@ function App() {
           <p className="eyebrow">Sattler College Pre-Health Club</p>
           <h1>Find mentors. Ask questions. Move forward.</h1>
         </div>
-        <nav className="nav">
-          <button
-            className={view === 'home' ? 'nav-link active' : 'nav-link'}
-            onClick={() => setView('home')}
-          >
-            Main page
-          </button>
-          <button
-            className={view === 'directory' ? 'nav-link active' : 'nav-link'}
-            onClick={() => setView('directory')}
-          >
-            Alumni contacts
-          </button>
-          <button
-            className={view === 'internships' ? 'nav-link active' : 'nav-link'}
-            onClick={() => setView('internships')}
-          >
-            Internships
-          </button>
-        </nav>
+        <div className="topbar-actions">
+          <nav className="nav">
+            <button
+              className={view === 'home' ? 'nav-link active' : 'nav-link'}
+              onClick={() => setView('home')}
+            >
+              Main page
+            </button>
+            <button
+              className={view === 'directory' ? 'nav-link active' : 'nav-link'}
+              onClick={() => setView('directory')}
+            >
+              Alumni contacts
+            </button>
+            <button
+              className={view === 'internships' ? 'nav-link active' : 'nav-link'}
+              onClick={() => setView('internships')}
+            >
+              Internships
+            </button>
+          </nav>
+
+          <div className="session-tools">
+            {signedInUserEmail ? <p className="session-badge">{signedInUserEmail}</p> : null}
+            <button
+              type="button"
+              className="nav-link"
+              onClick={() => {
+                void handleSignOut()
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
       </header>
 
       {view === 'home' ? (
