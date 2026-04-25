@@ -66,7 +66,7 @@ revoke execute on function public.email_domain_is_allowed(text) from public;
 grant execute on function public.email_domain_is_allowed(text) to anon, authenticated, supabase_auth_admin;
 
 revoke execute on function public.requesting_user_has_allowed_email() from public;
-grant execute on function public.requesting_user_has_allowed_email() to anon, authenticated, supabase_auth_admin;
+grant execute on function public.requesting_user_has_allowed_email() to authenticated, supabase_auth_admin;
 
 revoke execute on function public.hook_restrict_signup_by_email_domain(jsonb) from public, anon, authenticated;
 grant execute on function public.hook_restrict_signup_by_email_domain(jsonb) to supabase_auth_admin;

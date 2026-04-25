@@ -44,7 +44,10 @@ type InternshipExperience = {
   authorName: string
   note: string
   createdAt: string
+  userId: string | null
 }
+
+type ContactEditDraft = Omit<Contact, 'id'>
 
 type ContactRow = {
   id: string
@@ -76,6 +79,7 @@ type InternshipExperienceRow = {
   author_name: string
   note: string
   created_at: string
+  user_id: string | null
 }
 
 type ExperienceDraft = {
@@ -84,8 +88,6 @@ type ExperienceDraft = {
 }
 
 type ExperiencePanelMode = 'read' | 'share'
-
-const canDeleteExperiences = false
 
 const experienceDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -135,6 +137,7 @@ function mapInternshipExperienceRow(row: InternshipExperienceRow): InternshipExp
     authorName: row.author_name,
     note: row.note,
     createdAt: row.created_at,
+    userId: row.user_id,
   }
 }
 
@@ -298,6 +301,11 @@ function App() {
     Record<string, boolean>
   >({})
   const [experienceDeletingById, setExperienceDeletingById] = useState<Record<string, boolean>>({})
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [editingContactId, setEditingContactId] = useState<string | null>(null)
+  const [contactEditDraft, setContactEditDraft] = useState<ContactEditDraft | null>(null)
+  const [contactSavingById, setContactSavingById] = useState<Record<string, boolean>>({})
+  const [contactDeletingById, setContactDeletingById] = useState<Record<string, boolean>>({})
   const experienceAuthorInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [formData, setFormData] = useState<SubmissionFormData>(initialFormData)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubmissionFormData, string>>>({})
@@ -397,6 +405,20 @@ function App() {
       subscription.unsubscribe()
     }
   }, [])
+
+  useEffect(() => {
+    if (!session) {
+      setIsAdmin(false)
+      return
+    }
+
+    async function checkAdmin() {
+      const { data } = await supabase.rpc('is_admin')
+      setIsAdmin(data === true)
+    }
+
+    void checkAdmin()
+  }, [session])
 
   useEffect(() => {
     if (authLoading) {
@@ -623,6 +645,7 @@ function App() {
       internship_id: internshipId,
       author_name: authorName,
       note,
+      user_id: session!.user.id,
     })
 
     if (insertError) {
@@ -683,6 +706,80 @@ function App() {
       ...currentState,
       [experienceId]: false,
     }))
+  }
+
+  function handleContactEditStart(contact: Contact) {
+    setEditingContactId(contact.id)
+    setContactEditDraft({
+      name: contact.name,
+      field: contact.field,
+      role: contact.role,
+      location: contact.location,
+      connectionType: contact.connectionType,
+      notes: contact.notes,
+    })
+  }
+
+  function handleContactEditCancel() {
+    setEditingContactId(null)
+    setContactEditDraft(null)
+  }
+
+  function handleContactEditDraftChange(field: keyof ContactEditDraft, value: string) {
+    setContactEditDraft((current) => (current ? { ...current, [field]: value } : current))
+  }
+
+  async function handleContactEditSave(contactId: string) {
+    if (!contactEditDraft) {
+      return
+    }
+
+    setContactSavingById((current) => ({ ...current, [contactId]: true }))
+
+    const { error: updateError } = await supabase
+      .from('contacts')
+      .update({
+        name: contactEditDraft.name,
+        field: contactEditDraft.field,
+        role: contactEditDraft.role,
+        location: contactEditDraft.location,
+        connection_type: contactEditDraft.connectionType,
+        notes: contactEditDraft.notes,
+      })
+      .eq('id', contactId)
+
+    setContactSavingById((current) => ({ ...current, [contactId]: false }))
+
+    if (updateError) {
+      return
+    }
+
+    setContacts((current) =>
+      current.map((c) => (c.id === contactId ? { id: contactId, ...contactEditDraft } : c)),
+    )
+    setEditingContactId(null)
+    setContactEditDraft(null)
+  }
+
+  async function handleContactDelete(contactId: string) {
+    if (!window.confirm('Delete this contact? This cannot be undone.')) {
+      return
+    }
+
+    setContactDeletingById((current) => ({ ...current, [contactId]: true }))
+
+    const { error: deleteError } = await supabase
+      .from('contacts')
+      .delete()
+      .eq('id', contactId)
+
+    setContactDeletingById((current) => ({ ...current, [contactId]: false }))
+
+    if (deleteError) {
+      return
+    }
+
+    setContacts((current) => current.filter((c) => c.id !== contactId))
   }
 
   function handleInputChange(
@@ -913,22 +1010,124 @@ function App() {
             ) : (
               visibleContacts.map((contact) => (
                 <article key={contact.id} className="contact-card">
-                  <div className="contact-header">
-                    <p className="contact-field">{contact.field}</p>
-                    <h3>{contact.name}</h3>
-                  </div>
-                  <p className="contact-role">{contact.role}</p>
-                  <dl className="contact-meta">
-                    <div>
-                      <dt>Location</dt>
-                      <dd>{contact.location}</dd>
-                    </div>
-                    <div>
-                      <dt>Best for</dt>
-                      <dd>{contact.connectionType}</dd>
-                    </div>
-                  </dl>
-                  <p className="contact-notes">{contact.notes}</p>
+                  {editingContactId === contact.id && contactEditDraft ? (
+                    <>
+                      <div className="contact-header">
+                        <p className="section-label">Edit contact</p>
+                      </div>
+                      <label className="experience-form-field">
+                        <span>Name</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.name}
+                          onChange={(e) => handleContactEditDraftChange('name', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Field</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.field}
+                          onChange={(e) => handleContactEditDraftChange('field', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Role</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.role}
+                          onChange={(e) => handleContactEditDraftChange('role', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Location</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.location}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('location', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Connection type</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.connectionType}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('connectionType', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Notes</span>
+                        <textarea
+                          rows={3}
+                          value={contactEditDraft.notes}
+                          onChange={(e) => handleContactEditDraftChange('notes', e.target.value)}
+                        />
+                      </label>
+                      <div className="contact-admin-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          disabled={contactSavingById[contact.id]}
+                          onClick={() => {
+                            void handleContactEditSave(contact.id)
+                          }}
+                        >
+                          {contactSavingById[contact.id] ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          className="nav-link"
+                          onClick={handleContactEditCancel}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="contact-header">
+                        <p className="contact-field">{contact.field}</p>
+                        <h3>{contact.name}</h3>
+                      </div>
+                      <p className="contact-role">{contact.role}</p>
+                      <dl className="contact-meta">
+                        <div>
+                          <dt>Location</dt>
+                          <dd>{contact.location}</dd>
+                        </div>
+                        <div>
+                          <dt>Best for</dt>
+                          <dd>{contact.connectionType}</dd>
+                        </div>
+                      </dl>
+                      <p className="contact-notes">{contact.notes}</p>
+                      {isAdmin ? (
+                        <div className="contact-admin-actions">
+                          <button
+                            type="button"
+                            className="experience-delete-button"
+                            onClick={() => handleContactEditStart(contact)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="experience-delete-button"
+                            disabled={contactDeletingById[contact.id]}
+                            onClick={() => {
+                              void handleContactDelete(contact.id)
+                            }}
+                          >
+                            {contactDeletingById[contact.id] ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </article>
               ))
             )}
@@ -1268,7 +1467,7 @@ function App() {
                                   <h5>{experience.authorName}</h5>
                                   <p>{formatExperienceDate(experience.createdAt)}</p>
                                 </div>
-                                {canDeleteExperiences ? (
+                                {experience.userId === session?.user?.id || isAdmin ? (
                                   <button
                                     type="button"
                                     className="experience-delete-button"
