@@ -1,8 +1,15 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
 import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import preHealthLogo from './assets/pre-health-logo.png'
 import './App.css'
+import {
+  ALLOWED_EMAIL_DOMAIN_LABEL,
+  getInstitutionalAccessMessage,
+  isAllowedInstitutionEmail,
+  readAuthCallbackError,
+} from './auth'
 import { supabase } from './supabaseClient'
 
 type View = 'home' | 'directory' | 'internships' | 'submit'
@@ -37,7 +44,10 @@ type InternshipExperience = {
   authorName: string
   note: string
   createdAt: string
+  userId: string | null
 }
+
+type ContactEditDraft = Omit<Contact, 'id'>
 
 type ContactRow = {
   id: string
@@ -69,6 +79,7 @@ type InternshipExperienceRow = {
   author_name: string
   note: string
   created_at: string
+  user_id: string | null
 }
 
 type ExperienceDraft = {
@@ -77,8 +88,6 @@ type ExperienceDraft = {
 }
 
 type ExperiencePanelMode = 'read' | 'share'
-
-const canDeleteExperiences = false
 
 const experienceDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -128,6 +137,7 @@ function mapInternshipExperienceRow(row: InternshipExperienceRow): InternshipExp
     authorName: row.author_name,
     note: row.note,
     createdAt: row.created_at,
+    userId: row.user_id,
   }
 }
 
@@ -162,8 +172,108 @@ const initialFormData: SubmissionFormData = {
   mentoringInterest: '',
 }
 
+type AuthGateScreenProps = {
+  error: string | null
+  isSigningIn: boolean
+  onSignIn: () => void
+}
+
+function AuthLoadingScreen() {
+  return (
+    <div className="site-shell">
+      <main className="page auth-screen">
+        <section className="auth-panel">
+          <div className="hero-copy auth-copy">
+            <p className="section-label">Private community access</p>
+            <h2>Checking your Sattler access.</h2>
+            <p className="lead">
+              We&apos;re verifying your session so the site can stay private to institutional
+              members.
+            </p>
+            <p className="auth-loading-state">Loading secure access...</p>
+          </div>
+
+          <aside className="brand-panel auth-aside">
+            <div className="brand-panel-frame">
+              <img
+                className="brand-logo"
+                src={preHealthLogo}
+                alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+              />
+            </div>
+            <div className="brand-panel-copy">
+              <h3>Trusted access only</h3>
+              <p>
+                This space is reserved for the Sattler pre-health community so students can share
+                resources and reflections with confidence.
+              </p>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+  )
+}
+
+function AuthGateScreen({ error, isSigningIn, onSignIn }: AuthGateScreenProps) {
+  return (
+    <div className="site-shell">
+      <main className="page auth-screen">
+        <section className="auth-panel">
+          <div className="hero-copy auth-copy">
+            <p className="section-label">Private community access</p>
+            <h2>Sign in with your Sattler Google account.</h2>
+            <p className="lead">
+              The directory, internship guide, and shared reflections are only available to
+              approved institutional users.
+            </p>
+
+            <div className="auth-actions">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={onSignIn}
+                disabled={isSigningIn}
+              >
+                {isSigningIn ? 'Redirecting to Google...' : 'Continue with Google'}
+              </button>
+              <p className="auth-note">
+                Only Google accounts with an <strong>{ALLOWED_EMAIL_DOMAIN_LABEL}</strong> email
+                address can access this site.
+              </p>
+            </div>
+
+            {error ? <p className="auth-feedback auth-feedback-error">{error}</p> : null}
+          </div>
+
+          <aside className="brand-panel auth-aside">
+            <div className="brand-panel-frame">
+              <img
+                className="brand-logo"
+                src={preHealthLogo}
+                alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+              />
+            </div>
+            <div className="brand-panel-copy">
+              <h3>Why the gate?</h3>
+              <p>
+                We&apos;re protecting contact details and student reflections by limiting access to
+                trusted institutional accounts.
+              </p>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+  )
+}
+
 function App() {
   const [view, setView] = useState<View>('home')
+  const [session, setSession] = useState<Session | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [isSigningIn, setIsSigningIn] = useState(false)
+  const [authError, setAuthError] = useState<string | null>(null)
   const [selectedField, setSelectedField] = useState('All fields')
   const [contacts, setContacts] = useState<Contact[]>([])
   const [internships, setInternships] = useState<Internship[]>([])
@@ -191,12 +301,162 @@ function App() {
     Record<string, boolean>
   >({})
   const [experienceDeletingById, setExperienceDeletingById] = useState<Record<string, boolean>>({})
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [editingContactId, setEditingContactId] = useState<string | null>(null)
+  const [contactEditDraft, setContactEditDraft] = useState<ContactEditDraft | null>(null)
+  const [contactSavingById, setContactSavingById] = useState<Record<string, boolean>>({})
+  const [contactDeletingById, setContactDeletingById] = useState<Record<string, boolean>>({})
+  const [editingInternshipId, setEditingInternshipId] = useState<string | null>(null)
+  const [internshipEditDraft, setInternshipEditDraft] = useState<Omit<Internship, 'id'> | null>(null)
+  const [internshipSavingById, setInternshipSavingById] = useState<Record<string, boolean>>({})
+  const [internshipDeletingById, setInternshipDeletingById] = useState<Record<string, boolean>>({})
+  const [editingExperienceId, setEditingExperienceId] = useState<string | null>(null)
+  const [experienceEditDraft, setExperienceEditDraft] = useState('')
+  const [experienceSavingById, setExperienceSavingById] = useState<Record<string, boolean>>({})
   const experienceAuthorInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [formData, setFormData] = useState<SubmissionFormData>(initialFormData)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubmissionFormData, string>>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
 
   useEffect(() => {
+    let isActive = true
+    const callbackError = readAuthCallbackError()
+
+    if (callbackError) {
+      setAuthError(callbackError)
+    }
+
+    async function syncApprovedSession(
+      nextSession: Session | null,
+      preserveExistingErrorOnEmptySession = false,
+    ) {
+      if (!nextSession) {
+        if (!isActive) {
+          return
+        }
+
+        setSession(null)
+        setAuthLoading(false)
+        setIsSigningIn(false)
+
+        if (!preserveExistingErrorOnEmptySession) {
+          setAuthError(null)
+        }
+
+        return
+      }
+
+      if (isAllowedInstitutionEmail(nextSession.user.email)) {
+        if (!isActive) {
+          return
+        }
+
+        setSession(nextSession)
+        setAuthError(null)
+        setAuthLoading(false)
+        setIsSigningIn(false)
+        return
+      }
+
+      const invalidAccessMessage = getInstitutionalAccessMessage()
+      setAuthError(invalidAccessMessage)
+
+      const { error: signOutError } = await supabase.auth.signOut()
+
+      if (!isActive) {
+        return
+      }
+
+      setSession(null)
+      setAuthLoading(false)
+      setIsSigningIn(false)
+
+      if (signOutError) {
+        setAuthError(
+          `${invalidAccessMessage} We also ran into trouble clearing the session. Please refresh and try again.`,
+        )
+      }
+    }
+
+    async function initializeAuth() {
+      const {
+        data: { session: existingSession },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (!isActive) {
+        return
+      }
+
+      if (sessionError) {
+        setSession(null)
+        setAuthError(sessionError.message)
+        setAuthLoading(false)
+        setIsSigningIn(false)
+        return
+      }
+
+      await syncApprovedSession(existingSession, Boolean(callbackError))
+    }
+
+    void initializeAuth()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      void syncApprovedSession(nextSession, true)
+    })
+
+    return () => {
+      isActive = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!session) {
+      setIsAdmin(false)
+      return
+    }
+
+    async function checkAdmin() {
+      const { data } = await supabase.rpc('is_admin')
+      setIsAdmin(data === true)
+    }
+
+    void checkAdmin()
+  }, [session])
+
+  useEffect(() => {
+    if (authLoading) {
+      return
+    }
+
+    if (!session) {
+      setView('home')
+      setSelectedField('All fields')
+      setContacts([])
+      setInternships([])
+      setLoading(false)
+      setError(null)
+      setExperiencePanelModeByInternshipId({})
+      setExperiencesByInternshipId({})
+      setExperienceLoadingByInternshipId({})
+      setExperienceErrorByInternshipId({})
+      setExperienceDraftsByInternshipId({})
+      setExperienceFormErrorByInternshipId({})
+      setExperienceSubmittingByInternshipId({})
+      setExperienceDeletingById({})
+      setEditingInternshipId(null)
+      setInternshipEditDraft(null)
+      setInternshipSavingById({})
+      setInternshipDeletingById({})
+      setEditingExperienceId(null)
+      setExperienceEditDraft('')
+      setExperienceSavingById({})
+      return
+    }
+
     let isActive = true
 
     async function loadData() {
@@ -237,7 +497,7 @@ function App() {
     return () => {
       isActive = false
     }
-  }, [])
+  }, [authLoading, session])
 
   const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
 
@@ -245,6 +505,40 @@ function App() {
     selectedField === 'All fields'
       ? contacts
       : contacts.filter((contact) => contact.field === selectedField)
+
+  const signedInUserEmail = session?.user.email ?? null
+
+  async function handleGoogleSignIn() {
+    setAuthError(null)
+    setIsSigningIn(true)
+
+    const redirectUrl = new URL(window.location.href)
+    redirectUrl.search = ''
+    redirectUrl.hash = ''
+
+    const { error: signInError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl.toString(),
+      },
+    })
+
+    if (signInError) {
+      setAuthError(signInError.message)
+      setIsSigningIn(false)
+    }
+  }
+
+  async function handleSignOut() {
+    setAuthError(null)
+    setView('home')
+
+    const { error: signOutError } = await supabase.auth.signOut()
+
+    if (signOutError) {
+      setAuthError(signOutError.message)
+    }
+  }
 
   async function loadExperiencesForInternship(internshipId: string, forceRefresh = false) {
     if (!forceRefresh && internshipId in experiencesByInternshipId) {
@@ -365,6 +659,7 @@ function App() {
       internship_id: internshipId,
       author_name: authorName,
       note,
+      user_id: session!.user.id,
     })
 
     if (insertError) {
@@ -427,6 +722,198 @@ function App() {
     }))
   }
 
+  function handleContactEditStart(contact: Contact) {
+    setEditingContactId(contact.id)
+    setContactEditDraft({
+      name: contact.name,
+      field: contact.field,
+      role: contact.role,
+      location: contact.location,
+      connectionType: contact.connectionType,
+      notes: contact.notes,
+    })
+  }
+
+  function handleContactEditCancel() {
+    setEditingContactId(null)
+    setContactEditDraft(null)
+  }
+
+  function handleContactEditDraftChange(field: keyof ContactEditDraft, value: string) {
+    setContactEditDraft((current) => (current ? { ...current, [field]: value } : current))
+  }
+
+  async function handleContactEditSave(contactId: string) {
+    if (!contactEditDraft) {
+      return
+    }
+
+    setContactSavingById((current) => ({ ...current, [contactId]: true }))
+
+    const { error: updateError } = await supabase
+      .from('contacts')
+      .update({
+        name: contactEditDraft.name,
+        field: contactEditDraft.field,
+        role: contactEditDraft.role,
+        location: contactEditDraft.location,
+        connection_type: contactEditDraft.connectionType,
+        notes: contactEditDraft.notes,
+      })
+      .eq('id', contactId)
+
+    setContactSavingById((current) => ({ ...current, [contactId]: false }))
+
+    if (updateError) {
+      return
+    }
+
+    setContacts((current) =>
+      current.map((c) => (c.id === contactId ? { id: contactId, ...contactEditDraft } : c)),
+    )
+    setEditingContactId(null)
+    setContactEditDraft(null)
+  }
+
+  async function handleContactDelete(contactId: string) {
+    if (!window.confirm('Delete this contact? This cannot be undone.')) {
+      return
+    }
+
+    setContactDeletingById((current) => ({ ...current, [contactId]: true }))
+
+    const { error: deleteError } = await supabase
+      .from('contacts')
+      .delete()
+      .eq('id', contactId)
+
+    setContactDeletingById((current) => ({ ...current, [contactId]: false }))
+
+    if (deleteError) {
+      return
+    }
+
+    setContacts((current) => current.filter((c) => c.id !== contactId))
+  }
+
+  function handleInternshipEditStart(internship: Internship) {
+    setEditingInternshipId(internship.id)
+    setInternshipEditDraft({
+      title: internship.title,
+      organization: internship.organization,
+      focus: internship.focus,
+      term: internship.term,
+      location: internship.location,
+      format: internship.format,
+      applicationWindow: internship.applicationWindow,
+      fit: internship.fit,
+      description: internship.description,
+      nextStep: internship.nextStep,
+    })
+  }
+
+  function handleInternshipEditCancel() {
+    setEditingInternshipId(null)
+    setInternshipEditDraft(null)
+  }
+
+  function handleInternshipEditDraftChange(field: keyof Omit<Internship, 'id'>, value: string) {
+    setInternshipEditDraft((current) => (current ? { ...current, [field]: value } : current))
+  }
+
+  async function handleInternshipEditSave(internshipId: string) {
+    if (!internshipEditDraft) {
+      return
+    }
+
+    setInternshipSavingById((current) => ({ ...current, [internshipId]: true }))
+
+    const { error: updateError } = await supabase
+      .from('internships')
+      .update({
+        title: internshipEditDraft.title,
+        organization: internshipEditDraft.organization,
+        focus: internshipEditDraft.focus,
+        term: internshipEditDraft.term,
+        location: internshipEditDraft.location,
+        format: internshipEditDraft.format,
+        application_window: internshipEditDraft.applicationWindow,
+        fit: internshipEditDraft.fit,
+        description: internshipEditDraft.description,
+        next_step: internshipEditDraft.nextStep,
+      })
+      .eq('id', internshipId)
+
+    setInternshipSavingById((current) => ({ ...current, [internshipId]: false }))
+
+    if (updateError) {
+      return
+    }
+
+    setInternships((current) =>
+      current.map((i) =>
+        i.id === internshipId ? { id: internshipId, ...internshipEditDraft } : i,
+      ),
+    )
+    setEditingInternshipId(null)
+    setInternshipEditDraft(null)
+  }
+
+  async function handleInternshipDelete(internshipId: string) {
+    if (!window.confirm('Delete this internship? This cannot be undone.')) {
+      return
+    }
+
+    setInternshipDeletingById((current) => ({ ...current, [internshipId]: true }))
+
+    const { error: deleteError } = await supabase
+      .from('internships')
+      .delete()
+      .eq('id', internshipId)
+
+    setInternshipDeletingById((current) => ({ ...current, [internshipId]: false }))
+
+    if (deleteError) {
+      return
+    }
+
+    setInternships((current) => current.filter((i) => i.id !== internshipId))
+  }
+
+  function handleExperienceEditStart(experience: InternshipExperience) {
+    setEditingExperienceId(experience.id)
+    setExperienceEditDraft(experience.note)
+  }
+
+  function handleExperienceEditCancel() {
+    setEditingExperienceId(null)
+    setExperienceEditDraft('')
+  }
+
+  async function handleExperienceEditSave(internshipId: string, experienceId: string) {
+    setExperienceSavingById((current) => ({ ...current, [experienceId]: true }))
+
+    const { error: updateError } = await supabase
+      .from('internship_experiences')
+      .update({ note: experienceEditDraft })
+      .eq('id', experienceId)
+
+    setExperienceSavingById((current) => ({ ...current, [experienceId]: false }))
+
+    if (updateError) {
+      return
+    }
+
+    setExperiencesByInternshipId((current) => ({
+      ...current,
+      [internshipId]: (current[internshipId] ?? []).map((e) =>
+        e.id === experienceId ? { ...e, note: experienceEditDraft } : e,
+      ),
+    }))
+    setEditingExperienceId(null)
+    setExperienceEditDraft('')
+  }
+
   function handleInputChange(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) {
@@ -483,6 +970,14 @@ function App() {
     setFormData(initialFormData)
   }
 
+  if (authLoading) {
+    return <AuthLoadingScreen />
+  }
+
+  if (!session) {
+    return <AuthGateScreen error={authError} isSigningIn={isSigningIn} onSignIn={handleGoogleSignIn} />
+  }
+
   return (
     <div className="site-shell">
       <header className="topbar">
@@ -490,26 +985,41 @@ function App() {
           <p className="eyebrow">Sattler College Pre-Health Club</p>
           <h1>Find mentors. Ask questions. Move forward.</h1>
         </div>
-        <nav className="nav">
-          <button
-            className={view === 'home' ? 'nav-link active' : 'nav-link'}
-            onClick={() => setView('home')}
-          >
-            Main page
-          </button>
-          <button
-            className={view === 'directory' ? 'nav-link active' : 'nav-link'}
-            onClick={() => setView('directory')}
-          >
-            Alumni contacts
-          </button>
-          <button
-            className={view === 'internships' ? 'nav-link active' : 'nav-link'}
-            onClick={() => setView('internships')}
-          >
-            Internships
-          </button>
-        </nav>
+        <div className="topbar-actions">
+          <nav className="nav">
+            <button
+              className={view === 'home' ? 'nav-link active' : 'nav-link'}
+              onClick={() => setView('home')}
+            >
+              Main page
+            </button>
+            <button
+              className={view === 'directory' ? 'nav-link active' : 'nav-link'}
+              onClick={() => setView('directory')}
+            >
+              Alumni contacts
+            </button>
+            <button
+              className={view === 'internships' ? 'nav-link active' : 'nav-link'}
+              onClick={() => setView('internships')}
+            >
+              Internships
+            </button>
+          </nav>
+
+          <div className="session-tools">
+            {signedInUserEmail ? <p className="session-badge">{signedInUserEmail}</p> : null}
+            <button
+              type="button"
+              className="nav-link"
+              onClick={() => {
+                void handleSignOut()
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
       </header>
 
       {view === 'home' ? (
@@ -632,22 +1142,124 @@ function App() {
             ) : (
               visibleContacts.map((contact) => (
                 <article key={contact.id} className="contact-card">
-                  <div className="contact-header">
-                    <p className="contact-field">{contact.field}</p>
-                    <h3>{contact.name}</h3>
-                  </div>
-                  <p className="contact-role">{contact.role}</p>
-                  <dl className="contact-meta">
-                    <div>
-                      <dt>Location</dt>
-                      <dd>{contact.location}</dd>
-                    </div>
-                    <div>
-                      <dt>Best for</dt>
-                      <dd>{contact.connectionType}</dd>
-                    </div>
-                  </dl>
-                  <p className="contact-notes">{contact.notes}</p>
+                  {editingContactId === contact.id && contactEditDraft ? (
+                    <>
+                      <div className="contact-header">
+                        <p className="section-label">Edit contact</p>
+                      </div>
+                      <label className="experience-form-field">
+                        <span>Name</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.name}
+                          onChange={(e) => handleContactEditDraftChange('name', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Field</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.field}
+                          onChange={(e) => handleContactEditDraftChange('field', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Role</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.role}
+                          onChange={(e) => handleContactEditDraftChange('role', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Location</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.location}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('location', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Connection type</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.connectionType}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('connectionType', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Notes</span>
+                        <textarea
+                          rows={3}
+                          value={contactEditDraft.notes}
+                          onChange={(e) => handleContactEditDraftChange('notes', e.target.value)}
+                        />
+                      </label>
+                      <div className="contact-admin-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          disabled={contactSavingById[contact.id]}
+                          onClick={() => {
+                            void handleContactEditSave(contact.id)
+                          }}
+                        >
+                          {contactSavingById[contact.id] ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          className="nav-link"
+                          onClick={handleContactEditCancel}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="contact-header">
+                        <p className="contact-field">{contact.field}</p>
+                        <h3>{contact.name}</h3>
+                      </div>
+                      <p className="contact-role">{contact.role}</p>
+                      <dl className="contact-meta">
+                        <div>
+                          <dt>Location</dt>
+                          <dd>{contact.location}</dd>
+                        </div>
+                        <div>
+                          <dt>Best for</dt>
+                          <dd>{contact.connectionType}</dd>
+                        </div>
+                      </dl>
+                      <p className="contact-notes">{contact.notes}</p>
+                      {isAdmin ? (
+                        <div className="contact-admin-actions">
+                          <button
+                            type="button"
+                            className="experience-delete-button"
+                            onClick={() => handleContactEditStart(contact)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="experience-delete-button"
+                            disabled={contactDeletingById[contact.id]}
+                            onClick={() => {
+                              void handleContactDelete(contact.id)
+                            }}
+                          >
+                            {contactDeletingById[contact.id] ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
                 </article>
               ))
             )}
@@ -849,8 +1461,8 @@ function App() {
 
           <section className="internship-overview">
             <article className="content-card">
-              <p className="section-label">Why internships matter</p>
-              <h3>They help students move from general interest to informed commitment.</h3>
+              <p className="section-label">Internships matter</p>
+              <h3>Internships are an opportunity to get experience and build your resume.</h3>
               <p>
                 Good internships give more than a line on a resume. They help students see
                 workflows, ask better questions, and notice which settings energize them.
@@ -883,6 +1495,125 @@ function App() {
             ) : (
               internships.map((internship) => (
                 <article key={internship.id} className="internship-card">
+                  {editingInternshipId === internship.id && internshipEditDraft ? (
+                    <>
+                      <div className="internship-header">
+                        <p className="section-label">Edit internship</p>
+                      </div>
+                      <label className="experience-form-field">
+                        <span>Title</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.title}
+                          onChange={(e) => handleInternshipEditDraftChange('title', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Organization</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.organization}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('organization', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Focus</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.focus}
+                          onChange={(e) => handleInternshipEditDraftChange('focus', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Term</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.term}
+                          onChange={(e) => handleInternshipEditDraftChange('term', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Location</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.location}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('location', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Format</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.format}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('format', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Application window</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.applicationWindow}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('applicationWindow', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Best fit</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.fit}
+                          onChange={(e) => handleInternshipEditDraftChange('fit', e.target.value)}
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Description</span>
+                        <textarea
+                          rows={3}
+                          value={internshipEditDraft.description}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('description', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Next step</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.nextStep}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('nextStep', e.target.value)
+                          }
+                        />
+                      </label>
+                      <div className="internship-admin-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          disabled={internshipSavingById[internship.id]}
+                          onClick={() => {
+                            void handleInternshipEditSave(internship.id)
+                          }}
+                        >
+                          {internshipSavingById[internship.id] ? 'Saving...' : 'Save'}
+                        </button>
+                        <button
+                          type="button"
+                          className="nav-link"
+                          onClick={handleInternshipEditCancel}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
                   <div className="internship-header">
                     <div>
                       <p className="contact-field">{internship.focus}</p>
@@ -923,6 +1654,28 @@ function App() {
                       </tbody>
                     </table>
                   </div>
+
+                  {isAdmin ? (
+                    <div className="internship-admin-actions">
+                      <button
+                        type="button"
+                        className="experience-delete-button"
+                        onClick={() => handleInternshipEditStart(internship)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="experience-delete-button"
+                        disabled={internshipDeletingById[internship.id]}
+                        onClick={() => {
+                          void handleInternshipDelete(internship.id)
+                        }}
+                      >
+                        {internshipDeletingById[internship.id] ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </div>
+                  ) : null}
 
                   <div className="internship-actions">
                     <button
@@ -987,22 +1740,63 @@ function App() {
                                   <h5>{experience.authorName}</h5>
                                   <p>{formatExperienceDate(experience.createdAt)}</p>
                                 </div>
-                                {canDeleteExperiences ? (
-                                  <button
-                                    type="button"
-                                    className="experience-delete-button"
-                                    disabled={experienceDeletingById[experience.id]}
-                                    onClick={() =>
-                                      handleExperienceDelete(internship.id, experience.id)
-                                    }
-                                  >
-                                    {experienceDeletingById[experience.id]
-                                      ? 'Deleting...'
-                                      : 'Delete'}
-                                  </button>
+                                {experience.userId === session?.user?.id || isAdmin ? (
+                                  <div style={{ display: 'flex', gap: '8px' }}>
+                                    {editingExperienceId !== experience.id ? (
+                                      <button
+                                        type="button"
+                                        className="experience-delete-button"
+                                        onClick={() => handleExperienceEditStart(experience)}
+                                      >
+                                        Edit
+                                      </button>
+                                    ) : null}
+                                    <button
+                                      type="button"
+                                      className="experience-delete-button"
+                                      disabled={experienceDeletingById[experience.id]}
+                                      onClick={() =>
+                                        handleExperienceDelete(internship.id, experience.id)
+                                      }
+                                    >
+                                      {experienceDeletingById[experience.id]
+                                        ? 'Deleting...'
+                                        : 'Delete'}
+                                    </button>
+                                  </div>
                                 ) : null}
                               </div>
-                              <p className="experience-note">{experience.note}</p>
+                              {editingExperienceId === experience.id ? (
+                                <>
+                                  <textarea
+                                    className="experience-form-field"
+                                    rows={4}
+                                    value={experienceEditDraft}
+                                    onChange={(e) => setExperienceEditDraft(e.target.value)}
+                                  />
+                                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                    <button
+                                      type="button"
+                                      className="primary-button"
+                                      disabled={experienceSavingById[experience.id]}
+                                      onClick={() => {
+                                        void handleExperienceEditSave(internship.id, experience.id)
+                                      }}
+                                    >
+                                      {experienceSavingById[experience.id] ? 'Saving...' : 'Save'}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="nav-link"
+                                      onClick={handleExperienceEditCancel}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <p className="experience-note">{experience.note}</p>
+                              )}
                             </article>
                           ))}
                         </div>
@@ -1080,6 +1874,8 @@ function App() {
                       </form>
                     </section>
                   ) : null}
+                    </>
+                  )}
                 </article>
               ))
             )}
