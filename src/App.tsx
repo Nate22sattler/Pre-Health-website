@@ -36,6 +36,10 @@ type Internship = {
   fit: string
   description: string
   nextStep: string
+  idealCandidate: string
+  opportunityType: string
+  deadline: string
+  website: string
 }
 
 type InternshipExperience = {
@@ -71,6 +75,10 @@ type InternshipRow = {
   fit: string
   description: string
   next_step: string
+  ideal_candidate: string | null
+  opportunity_type: string | null
+  deadline: string | null
+  website: string | null
 }
 
 type InternshipExperienceRow = {
@@ -94,6 +102,9 @@ const experienceDateFormatter = new Intl.DateTimeFormat('en-US', {
   day: 'numeric',
   year: 'numeric',
 })
+
+const idealCandidateOptions = ['pre-MD', 'pre-PhD', 'other']
+const opportunityTypeOptions = ['Clinical', 'Basic Science', 'Other']
 
 function createExperienceDraft(): ExperienceDraft {
   return {
@@ -127,6 +138,10 @@ function mapInternshipRow(row: InternshipRow): Internship {
     fit: row.fit,
     description: row.description,
     nextStep: row.next_step,
+    idealCandidate: row.ideal_candidate ?? '',
+    opportunityType: row.opportunity_type ?? '',
+    deadline: row.deadline ?? '',
+    website: row.website ?? '',
   }
 }
 
@@ -144,6 +159,11 @@ function mapInternshipExperienceRow(row: InternshipExperienceRow): InternshipExp
 function formatExperienceDate(date: string): string {
   return experienceDateFormatter.format(new Date(date))
 }
+
+function getWebsiteHref(website: string): string {
+  return /^https?:\/\//i.test(website) ? website : `https://${website}`
+}
+
 type SubmissionFormData = {
   fullName: string
   email: string
@@ -809,6 +829,10 @@ function App() {
       fit: internship.fit,
       description: internship.description,
       nextStep: internship.nextStep,
+      idealCandidate: internship.idealCandidate,
+      opportunityType: internship.opportunityType,
+      deadline: internship.deadline,
+      website: internship.website,
     })
   }
 
@@ -841,6 +865,10 @@ function App() {
         fit: internshipEditDraft.fit,
         description: internshipEditDraft.description,
         next_step: internshipEditDraft.nextStep,
+        ideal_candidate: internshipEditDraft.idealCandidate || null,
+        opportunity_type: internshipEditDraft.opportunityType || null,
+        deadline: internshipEditDraft.deadline || null,
+        website: internshipEditDraft.website || null,
       })
       .eq('id', internshipId)
 
@@ -1507,7 +1535,7 @@ function App() {
                         <p className="section-label">Edit internship</p>
                       </div>
                       <label className="experience-form-field">
-                        <span>Title</span>
+                        <span>Name of Internship</span>
                         <input
                           type="text"
                           value={internshipEditDraft.title}
@@ -1515,29 +1543,13 @@ function App() {
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Organization</span>
+                        <span>Institution</span>
                         <input
                           type="text"
                           value={internshipEditDraft.organization}
                           onChange={(e) =>
                             handleInternshipEditDraftChange('organization', e.target.value)
                           }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Focus</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.focus}
-                          onChange={(e) => handleInternshipEditDraftChange('focus', e.target.value)}
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Term</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.term}
-                          onChange={(e) => handleInternshipEditDraftChange('term', e.target.value)}
                         />
                       </label>
                       <label className="experience-form-field">
@@ -1551,35 +1563,7 @@ function App() {
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Format</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.format}
-                          onChange={(e) =>
-                            handleInternshipEditDraftChange('format', e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Application window</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.applicationWindow}
-                          onChange={(e) =>
-                            handleInternshipEditDraftChange('applicationWindow', e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Best fit</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.fit}
-                          onChange={(e) => handleInternshipEditDraftChange('fit', e.target.value)}
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Description</span>
+                        <span>Summary</span>
                         <textarea
                           rows={3}
                           value={internshipEditDraft.description}
@@ -1589,12 +1573,54 @@ function App() {
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Next step</span>
+                        <span>Ideal Candidate</span>
+                        <select
+                          value={internshipEditDraft.idealCandidate}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('idealCandidate', e.target.value)
+                          }
+                        >
+                          <option value="">Select an option</option>
+                          {idealCandidateOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Clinical or Basic Science or Other</span>
+                        <select
+                          value={internshipEditDraft.opportunityType}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('opportunityType', e.target.value)
+                          }
+                        >
+                          <option value="">Select an option</option>
+                          {opportunityTypeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Deadline</span>
                         <input
                           type="text"
-                          value={internshipEditDraft.nextStep}
+                          value={internshipEditDraft.deadline}
                           onChange={(e) =>
-                            handleInternshipEditDraftChange('nextStep', e.target.value)
+                            handleInternshipEditDraftChange('deadline', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Website</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.website}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('website', e.target.value)
                           }
                         />
                       </label>
@@ -1622,7 +1648,9 @@ function App() {
                     <>
                   <div className="internship-header">
                     <div>
-                      <p className="contact-field">{internship.focus}</p>
+                      <p className="contact-field">
+                        {internship.opportunityType || internship.focus || 'Internship'}
+                      </p>
                       <h3>{internship.title}</h3>
                     </div>
                     <p className="internship-organization">{internship.organization}</p>
@@ -1634,28 +1662,50 @@ function App() {
                     <table className="internship-table">
                       <tbody>
                         <tr>
-                          <th scope="row">Term</th>
-                          <td>{internship.term}</td>
+                          <th scope="row">Name of Internship</th>
+                          <td>{internship.title}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Institution</th>
+                          <td>{internship.organization}</td>
                         </tr>
                         <tr>
                           <th scope="row">Location</th>
-                          <td>{internship.location}</td>
+                          <td>{internship.location || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Format</th>
-                          <td>{internship.format}</td>
+                          <th scope="row">Summary</th>
+                          <td>{internship.description || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Apply</th>
-                          <td>{internship.applicationWindow}</td>
+                          <th scope="row">Ideal Candidate</th>
+                          <td>{internship.idealCandidate || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Best fit</th>
-                          <td>{internship.fit}</td>
+                          <th scope="row">Clinical or Basic Science or Other</th>
+                          <td>{internship.opportunityType || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Next step</th>
-                          <td>{internship.nextStep}</td>
+                          <th scope="row">Deadline</th>
+                          <td>
+                            {internship.deadline || internship.applicationWindow || 'Not provided'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Website</th>
+                          <td>
+                            {internship.website ? (
+                              <a
+                                href={getWebsiteHref(internship.website)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {internship.website}
+                              </a>
+                            ) : (
+                              'Not provided'
+                            )}
+                          </td>
                         </tr>
                       </tbody>
                     </table>

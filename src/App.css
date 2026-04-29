@@ -625,6 +625,7 @@
 }
 
 .experience-form-field input,
+.experience-form-field select,
 .experience-form-field textarea {
   width: 100%;
   border: 1px solid var(--line);
