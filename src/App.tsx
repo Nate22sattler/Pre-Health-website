@@ -1450,22 +1450,28 @@ function App() {
             </div>
 
             <aside className="signal-card">
-              <p className="section-label">How to use this page</p>
-              <ul>
-                <li>Start with opportunities that match the kind of exposure you need next.</li>
-                <li>Pay attention to timing so you can prepare before application windows open.</li>
-                <li>Use the next-step note to turn interest into one concrete action.</li>
-              </ul>
+              <p className="section-label">How to Find and Apply for Internships</p>
+              <ol>
+                <li>Look for opportunities that match your career plans. (For competitive programs, consider applying to approximately 20 internships.)</li>
+                <li>List all potential internships by application deadline in a spreadsheet.</li>
+                <li>Ask 2-3 professors or advisors to write a <i>strong</i> letter of recommendation.</li>
+                <li>Share a list of potential internships with your letters writers at least 2 weeks before 
+                  the first deadline. Include notes about specific traits they should highlight for particular 
+                  internships.</li>
+                <li>Optimize your personal statement and CV.</li>
+                <li>Submit and pray.</li>
+              </ol>
             </aside>
           </section>
 
           <section className="internship-overview">
             <article className="content-card">
-              <p className="section-label">Internships matter</p>
-              <h3>Internships are an opportunity to get experience and build your resume.</h3>
+              <p className="section-label">Why Internships</p>
+              <h3>Explore your future career through real-world internship experience.</h3>
               <p>
-                Good internships give more than a line on a resume. They help students see
-                workflows, ask better questions, and notice which settings energize them.
+                 Internships bridge the gap between classroom learning and your future career, helping 
+                 you test and refine your goals before fully committing to a path. By conducting real-world 
+                 work and engaging with professionals, you grow intellectually, socially, and gain clarity about your future.
               </p>
             </article>
 
@@ -1473,8 +1479,8 @@ function App() {
               <p className="section-label">What to look for</p>
               <h3>Choose opportunities with clear learning value.</h3>
               <p>
-                Strong options usually offer mentorship, direct observation, and enough
-                structure for you to understand how the organization actually serves people.
+                Strong internship options relate to and align with personal career considerations. They 
+                offer strong mentorship, networking opportunities, soft-skills training.
               </p>
             </article>
           </section>
