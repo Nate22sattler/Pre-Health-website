@@ -26,16 +26,10 @@ type Contact = {
 
 type Internship = {
   id: string
-  title: string
-  organization: string
-  focus: string
-  term: string
+  name: string
+  institution: string
   location: string
-  format: string
-  applicationWindow: string
-  fit: string
-  description: string
-  nextStep: string
+  summary: string
   idealCandidate: string
   opportunityType: string
   deadline: string
@@ -65,16 +59,10 @@ type ContactRow = {
 
 type InternshipRow = {
   id: string
-  title: string
-  organization: string
-  focus: string
-  term: string
+  name: string
+  institution: string
   location: string
-  format: string
-  application_window: string
-  fit: string
-  description: string
-  next_step: string
+  summary: string
   ideal_candidate: string | null
   opportunity_type: string | null
   deadline: string | null
@@ -128,16 +116,10 @@ function mapContactRow(row: ContactRow): Contact {
 function mapInternshipRow(row: InternshipRow): Internship {
   return {
     id: row.id,
-    title: row.title,
-    organization: row.organization,
-    focus: row.focus,
-    term: row.term,
+    name: row.name,
+    institution: row.institution,
     location: row.location,
-    format: row.format,
-    applicationWindow: row.application_window,
-    fit: row.fit,
-    description: row.description,
-    nextStep: row.next_step,
+    summary: row.summary,
     idealCandidate: row.ideal_candidate ?? '',
     opportunityType: row.opportunity_type ?? '',
     deadline: row.deadline ?? '',
@@ -488,7 +470,7 @@ function App() {
         { data: internshipRows, error: internshipsError },
       ] = await Promise.all([
         supabase.from('contacts').select('*').order('name'),
-        supabase.from('internships').select('*').order('title'),
+        supabase.from('internships').select('*').order('name'),
       ])
 
       if (!isActive) {
@@ -819,16 +801,10 @@ function App() {
   function handleInternshipEditStart(internship: Internship) {
     setEditingInternshipId(internship.id)
     setInternshipEditDraft({
-      title: internship.title,
-      organization: internship.organization,
-      focus: internship.focus,
-      term: internship.term,
+      name: internship.name,
+      institution: internship.institution,
       location: internship.location,
-      format: internship.format,
-      applicationWindow: internship.applicationWindow,
-      fit: internship.fit,
-      description: internship.description,
-      nextStep: internship.nextStep,
+      summary: internship.summary,
       idealCandidate: internship.idealCandidate,
       opportunityType: internship.opportunityType,
       deadline: internship.deadline,
@@ -855,16 +831,10 @@ function App() {
     const { error: updateError } = await supabase
       .from('internships')
       .update({
-        title: internshipEditDraft.title,
-        organization: internshipEditDraft.organization,
-        focus: internshipEditDraft.focus,
-        term: internshipEditDraft.term,
+        name: internshipEditDraft.name,
+        institution: internshipEditDraft.institution,
         location: internshipEditDraft.location,
-        format: internshipEditDraft.format,
-        application_window: internshipEditDraft.applicationWindow,
-        fit: internshipEditDraft.fit,
-        description: internshipEditDraft.description,
-        next_step: internshipEditDraft.nextStep,
+        summary: internshipEditDraft.summary,
         ideal_candidate: internshipEditDraft.idealCandidate || null,
         opportunity_type: internshipEditDraft.opportunityType || null,
         deadline: internshipEditDraft.deadline || null,
@@ -1538,17 +1508,17 @@ function App() {
                         <span>Name of Internship</span>
                         <input
                           type="text"
-                          value={internshipEditDraft.title}
-                          onChange={(e) => handleInternshipEditDraftChange('title', e.target.value)}
+                          value={internshipEditDraft.name}
+                          onChange={(e) => handleInternshipEditDraftChange('name', e.target.value)}
                         />
                       </label>
                       <label className="experience-form-field">
                         <span>Institution</span>
                         <input
                           type="text"
-                          value={internshipEditDraft.organization}
+                          value={internshipEditDraft.institution}
                           onChange={(e) =>
-                            handleInternshipEditDraftChange('organization', e.target.value)
+                            handleInternshipEditDraftChange('institution', e.target.value)
                           }
                         />
                       </label>
@@ -1566,9 +1536,9 @@ function App() {
                         <span>Summary</span>
                         <textarea
                           rows={3}
-                          value={internshipEditDraft.description}
+                          value={internshipEditDraft.summary}
                           onChange={(e) =>
-                            handleInternshipEditDraftChange('description', e.target.value)
+                            handleInternshipEditDraftChange('summary', e.target.value)
                           }
                         />
                       </label>
@@ -1649,25 +1619,25 @@ function App() {
                   <div className="internship-header">
                     <div>
                       <p className="contact-field">
-                        {internship.opportunityType || internship.focus || 'Internship'}
+                        {internship.opportunityType || 'Internship'}
                       </p>
-                      <h3>{internship.title}</h3>
+                      <h3>{internship.name}</h3>
                     </div>
-                    <p className="internship-organization">{internship.organization}</p>
+                    <p className="internship-organization">{internship.institution}</p>
                   </div>
 
-                  <p className="internship-description">{internship.description}</p>
+                  <p className="internship-description">{internship.summary}</p>
 
                   <div className="internship-table-wrapper">
                     <table className="internship-table">
                       <tbody>
                         <tr>
                           <th scope="row">Name of Internship</th>
-                          <td>{internship.title}</td>
+                          <td>{internship.name}</td>
                         </tr>
                         <tr>
                           <th scope="row">Institution</th>
-                          <td>{internship.organization}</td>
+                          <td>{internship.institution}</td>
                         </tr>
                         <tr>
                           <th scope="row">Location</th>
@@ -1675,7 +1645,7 @@ function App() {
                         </tr>
                         <tr>
                           <th scope="row">Summary</th>
-                          <td>{internship.description || 'Not provided'}</td>
+                          <td>{internship.summary || 'Not provided'}</td>
                         </tr>
                         <tr>
                           <th scope="row">Ideal Candidate</th>
@@ -1687,9 +1657,7 @@ function App() {
                         </tr>
                         <tr>
                           <th scope="row">Deadline</th>
-                          <td>
-                            {internship.deadline || internship.applicationWindow || 'Not provided'}
-                          </td>
+                          <td>{internship.deadline || 'Not provided'}</td>
                         </tr>
                         <tr>
                           <th scope="row">Website</th>
