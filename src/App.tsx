@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import preHealthLogo from './assets/pre-health-logo.png'
+import homeHeroImage from './assets/v3.jpeg'
 import './App.css'
 import {
   ALLOWED_EMAIL_DOMAIN_LABEL,
@@ -527,8 +528,6 @@ function App() {
       ? contacts
       : contacts.filter((contact) => contact.fieldOfWork === selectedField)
 
-  const signedInUserEmail = session?.user.email ?? null
-
   async function handleGoogleSignIn() {
     setAuthError(null)
     setIsSigningIn(true)
@@ -1002,9 +1001,13 @@ function App() {
   return (
     <div className="site-shell">
       <header className="topbar">
-        <div>
+        <div className="topbar-brand">
+          <img
+            className="topbar-logo"
+            src={preHealthLogo}
+            alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+          />
           <p className="eyebrow">Sattler College Pre-Health Club</p>
-          <h1>Find mentors. Ask questions. Move forward.</h1>
         </div>
         <div className="topbar-actions">
           <nav className="nav">
@@ -1029,7 +1032,6 @@ function App() {
           </nav>
 
           <div className="session-tools">
-            {signedInUserEmail ? <p className="session-badge">{signedInUserEmail}</p> : null}
             <button
               type="button"
               className="nav-link"
@@ -1045,6 +1047,20 @@ function App() {
 
       {view === 'home' ? (
         <main className="page">
+          <section className="home-hero">
+            <div className="home-hero-copy">
+              <p className="section-label">Sattler Pre-Health Association</p>
+              <h1>Find mentors. Ask questions. Move forward.</h1>
+            </div>
+
+            <figure className="home-hero-media">
+              <img
+                src={homeHeroImage}
+                alt="A Sattler Pre-Health Association presentation."
+              />
+            </figure>
+          </section>
+
           <section className="hero-panel">
             <div className="hero-copy">
               <p className="section-label">Sattler Pre-Health Association</p>
@@ -1065,14 +1081,6 @@ function App() {
 
             <div className="hero-side-stack">
               <aside className="brand-panel">
-                <div className="brand-panel-frame">
-                  <img
-                    className="brand-logo"
-                    src={preHealthLogo}
-                    alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
-                  />
-                </div>
-
                 <div className="brand-panel-copy">
                   <h3>Connect. Equip. Serve.</h3>
                   <p>
@@ -1551,14 +1559,14 @@ function App() {
             <aside className="signal-card">
               <p className="section-label">How to Find and Apply for Internships</p>
               <ol>
-                <li><strong><bold>Look</bold></strong> for opportunities that match your career plans. (For competitive programs, consider applying to approximately 20 internships.)</li>
-                <li><strong><bold>List</bold></strong> all potential internships by application deadline in a spreadsheet.</li>
-                <li><strong><bold>Ask</bold></strong> 2-3 professors or advisors to write a <i>strong</i> letter of recommendation.</li>
-                <li><strong><bold>Share</bold></strong> a list of potential internships with your letters writers at least 2 weeks before 
+                <li><strong>Look</strong> for opportunities that match your career plans. (For competitive programs, consider applying to approximately 20 internships.)</li>
+                <li><strong>List</strong> all potential internships by application deadline in a spreadsheet.</li>
+                <li><strong>Ask</strong> 2-3 professors or advisors to write a <i>strong</i> letter of recommendation.</li>
+                <li><strong>Share</strong> a list of potential internships with your letters writers at least 2 weeks before 
                   the first deadline. Include notes about specific traits they should highlight for particular 
                   internships.</li>
-                <li><strong><bold>Optimize</bold></strong> your personal statement and CV.</li>
-                <li><strong><bold>Submit</bold></strong> and <strong><bold>Pray</bold></strong>.</li>
+                <li><strong>Optimize</strong> your personal statement and CV.</li>
+                <li><strong>Submit</strong> and <strong>Pray</strong>.</li>
               </ol>
             </aside>
           </section>
