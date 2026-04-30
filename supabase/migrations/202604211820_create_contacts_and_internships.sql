@@ -1,5 +1,4 @@
 create extension if not exists pgcrypto;
-
 create table if not exists public.contacts (
   id uuid primary key default gen_random_uuid(),
   name text not null,
@@ -12,7 +11,6 @@ create table if not exists public.contacts (
   updated_at timestamptz not null default now(),
   constraint contacts_name_role_key unique (name, role)
 );
-
 create table if not exists public.internships (
   id uuid primary key default gen_random_uuid(),
   title text not null,
@@ -29,25 +27,20 @@ create table if not exists public.internships (
   updated_at timestamptz not null default now(),
   constraint internships_title_organization_key unique (title, organization)
 );
-
 create index if not exists contacts_field_idx on public.contacts (field);
 create index if not exists internships_focus_idx on public.internships (focus);
-
 alter table public.contacts enable row level security;
 alter table public.internships enable row level security;
-
 drop policy if exists "Public read access for contacts" on public.contacts;
 create policy "Public read access for contacts"
   on public.contacts
   for select
   using (true);
-
 drop policy if exists "Public read access for internships" on public.internships;
 create policy "Public read access for internships"
   on public.internships
   for select
   using (true);
-
 insert into public.contacts (name, field, role, location, connection_type, notes)
 values
   (
@@ -89,7 +82,6 @@ set
   connection_type = excluded.connection_type,
   notes = excluded.notes,
   updated_at = now();
-
 insert into public.internships (
   title,
   organization,
