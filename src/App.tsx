@@ -1551,14 +1551,14 @@ function App() {
             <aside className="signal-card">
               <p className="section-label">How to Find and Apply for Internships</p>
               <ol>
-                <li>Look for opportunities that match your career plans. (For competitive programs, consider applying to approximately 20 internships.)</li>
-                <li>List all potential internships by application deadline in a spreadsheet.</li>
-                <li>Ask 2-3 professors or advisors to write a <i>strong</i> letter of recommendation.</li>
-                <li>Share a list of potential internships with your letters writers at least 2 weeks before 
+                <li><strong><bold>Look</bold></strong> for opportunities that match your career plans. (For competitive programs, consider applying to approximately 20 internships.)</li>
+                <li><strong><bold>List</bold></strong> all potential internships by application deadline in a spreadsheet.</li>
+                <li><strong><bold>Ask</bold></strong> 2-3 professors or advisors to write a <i>strong</i> letter of recommendation.</li>
+                <li><strong><bold>Share</bold></strong> a list of potential internships with your letters writers at least 2 weeks before 
                   the first deadline. Include notes about specific traits they should highlight for particular 
                   internships.</li>
-                <li>Optimize your personal statement and CV.</li>
-                <li>Submit and pray.</li>
+                <li><strong><bold>Optimize</bold></strong> your personal statement and CV.</li>
+                <li><strong><bold>Submit</bold></strong> and <strong><bold>Pray</bold></strong>.</li>
               </ol>
             </aside>
           </section>
