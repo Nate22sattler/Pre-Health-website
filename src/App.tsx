@@ -4,6 +4,9 @@ import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'r
 import type { Session } from '@supabase/supabase-js'
 import preHealthLogo from './assets/pre-health-logo.png'
 import homeHeroImage from './assets/v3.jpeg'
+import mentorCardImage from './assets/mentor.jpg'
+import internshipCardImage from './assets/intern.jpg'
+import careerCardImage from './assets/career.jpg'
 import './App.css'
 import {
   ALLOWED_EMAIL_DOMAIN_LABEL,
@@ -600,7 +603,13 @@ function App() {
     }
   }, [authLoading, session])
 
-  const fields = ['All fields', ...new Set(contacts.map((contact) => contact.fieldOfWork).filter(Boolean))]
+  const fields = [
+    'All fields',
+    ...new Set([
+      ...contactFieldOptions,
+      ...contacts.map((contact) => contact.fieldOfWork).filter(Boolean),
+    ]),
+  ]
   const normalizedPath = window.location.pathname.replace(/\/$/, '')
   const isPublicAlumniSubmissionRoute =
     normalizedPath === '/alumni-submit' || window.location.hash === '#alumni-submit'
@@ -609,6 +618,13 @@ function App() {
     selectedField === 'All fields'
       ? contacts
       : contacts.filter((contact) => contact.fieldOfWork === selectedField)
+
+  function navigateToView(nextView: View) {
+    setView(nextView)
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    })
+  }
 
   async function handleGoogleSignIn() {
     setAuthError(null)
@@ -633,7 +649,7 @@ function App() {
 
   async function handleSignOut() {
     setAuthError(null)
-    setView('home')
+    navigateToView('home')
 
     const { error: signOutError } = await supabase.auth.signOut()
 
@@ -1423,32 +1439,32 @@ function App() {
             src={preHealthLogo}
             alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
           />
-          <p className="eyebrow">Sattler College Pre-Health Club</p>
+          <p className="eyebrow">Sattler College Pre-Health Association</p>
         </div>
         <div className="topbar-actions">
           <nav className="nav">
             <button
               className={view === 'home' ? 'nav-link active' : 'nav-link'}
-              onClick={() => setView('home')}
+              onClick={() => navigateToView('home')}
             >
               Main page
             </button>
             <button
               className={view === 'directory' ? 'nav-link active' : 'nav-link'}
-              onClick={() => setView('directory')}
+              onClick={() => navigateToView('directory')}
             >
               Alumni contacts
             </button>
             <button
               className={view === 'internships' ? 'nav-link active' : 'nav-link'}
-              onClick={() => setView('internships')}
+              onClick={() => navigateToView('internships')}
             >
               Internships
             </button>
             {isAdmin ? (
               <button
                 className={view === 'review' ? 'nav-link active' : 'nav-link'}
-                onClick={() => setView('review')}
+                onClick={() => navigateToView('review')}
               >
                 Review submissions
               </button>
@@ -1471,18 +1487,18 @@ function App() {
 
       {view === 'home' ? (
         <main className="page">
-          <section className="home-hero">
+          <section
+            className="home-hero"
+            style={{
+              backgroundImage: `linear-gradient(rgba(10, 20, 38, 0.58), rgba(10, 20, 38, 0.58)), url(${homeHeroImage})`,
+            }}
+          >
             <div className="home-hero-copy">
               <p className="section-label">Sattler Pre-Health Association</p>
-              <h1>Find mentors. Ask questions. Move forward.</h1>
+              <h1>Find mentors</h1>
+              <h1>Ask questions</h1>
+              <h1>Move forward</h1>
             </div>
-
-            <figure className="home-hero-media">
-              <img
-                src={homeHeroImage}
-                alt="A Sattler Pre-Health Association presentation."
-              />
-            </figure>
           </section>
 
           <section className="hero-panel">
@@ -1494,7 +1510,7 @@ function App() {
                 alumni, and reach out with clarity and confidence. To begin browsing alumnis or research oppurtunities navigate to the respective page. 
               </p>
               <div className="hero-actions">
-                <button className="primary-button" onClick={() => setView('directory')}>
+                <button className="primary-button" onClick={() => navigateToView('directory')}>
                   Browse alumni
                 </button>
                 <a className="secondary-link" href="#how-it-works">
@@ -1516,35 +1532,35 @@ function App() {
           </section>
 
           <section id="how-it-works" className="content-grid">
-            <article className="content-card">
+            <button
+              type="button"
+              className="content-card content-card-photo"
+              style={{ backgroundImage: `url(${mentorCardImage})` }}
+              onClick={() => navigateToView('directory')}
+            >
               <p className="section-label">mentor connections</p>
               <h3>Connect with Alumni Mentors</h3>
-              <ul>
-                <li>Explain the mission in one sentence.</li>
-                <li>Show how students can use the site in a few quick steps.</li>
-                <li>Invite alumni and professionals to participate.</li>
-              </ul>
-            </article>
+            </button>
 
-            <article className="content-card">
+            <button
+              type="button"
+              className="content-card content-card-photo"
+              style={{ backgroundImage: `url(${internshipCardImage})` }}
+              onClick={() => navigateToView('internships')}
+            >
               <p className="section-label">career discovery</p>
               <h3>Discover Internships and Experiences</h3>
-              <ul>
-                <li>Name, field, current role, location, and best topics to discuss.</li>
-                <li>Clear categories like medicine, dentistry, PT, nursing, or public health.</li>
-                <li>Simple filters so students can find relevant mentors quickly.</li>
-              </ul>
-            </article>
+            </button>
 
-            <article className="content-card">
+            <button
+              type="button"
+              className="content-card content-card-photo"
+              style={{ backgroundImage: `url(${careerCardImage})` }}
+              onClick={() => navigateToView('internships')}
+            >
               <p className="section-label">real world experience</p>
               <h3>Explore Healthcare Paths</h3>
-              <ul>
-                <li>Search and filtering by major, profession, and application stage.</li>
-                <li>A request form for students who want an introduction.</li>
-                <li>Admin tools for club leaders to update alumni entries each semester.</li>
-              </ul>
-            </article>
+            </button>
           </section>
         </main>
       ) : view === 'directory' ? (
@@ -1554,7 +1570,7 @@ function App() {
               <p className="section-label">Alumni directory</p>
               <h2>Start with a small, high-trust list of mentors.</h2>
               <p className="lead">
-                Even ten strong contacts is enough to make this page valuable in the first version.
+                Even ten strong contacts can make a huge difference in your confidence and clarity. Browse the directory to find alumni mentors you can reach out to for advice, informational interviews, or shadowing opportunities.
               </p>
             </div>
 
@@ -1573,7 +1589,7 @@ function App() {
                 </select>
               </label>
 
-              <button className="primary-button" onClick={() => setView('submit')}>
+              <button className="primary-button" onClick={() => navigateToView('submit')}>
                 Submit Your Information
               </button>
             </div>
