@@ -3,6 +3,10 @@
 import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import preHealthLogo from './assets/pre-health-logo.png'
+import homeHeroImage from './assets/v3.jpeg'
+import mentorCardImage from './assets/mentor.jpg'
+import internshipCardImage from './assets/intern.jpg'
+import careerCardImage from './assets/career.jpg'
 import './App.css'
 import {
   ALLOWED_EMAIL_DOMAIN_LABEL,
@@ -12,30 +16,32 @@ import {
 } from './auth'
 import { supabase } from './supabaseClient'
 
-type View = 'home' | 'directory' | 'internships' | 'submit'
+type View = 'home' | 'directory' | 'internships' | 'submit' | 'review'
 
 type Contact = {
   id: string
-  name: string
-  field: string
-  role: string
+  fullName: string
+  gender: string
+  fieldOfWork: string
+  highestDegreeAndDate: string
+  currentTitle: string
+  currentEmployer: string
+  previousWork: string
+  willingToBeContacted: boolean | null
+  bestFormOfContact: string
   location: string
-  connectionType: string
-  notes: string
 }
 
 type Internship = {
   id: string
-  title: string
-  organization: string
-  focus: string
-  term: string
+  name: string
+  institution: string
   location: string
-  format: string
-  applicationWindow: string
-  fit: string
-  description: string
-  nextStep: string
+  summary: string
+  idealCandidate: string
+  opportunityType: string
+  deadline: string
+  website: string
 }
 
 type InternshipExperience = {
@@ -47,30 +53,51 @@ type InternshipExperience = {
   userId: string | null
 }
 
+type AlumniSubmission = {
+  id: string
+  fullName: string
+  gender: string
+  fieldOfWork: string
+  highestDegreeAndDate: string
+  currentTitle: string
+  currentEmployer: string
+  previousWork: string
+  willingToBeContacted: boolean
+  bestFormOfContact: string
+  location: string
+  consentToShare: boolean
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+  reviewedAt: string | null
+  reviewedBy: string | null
+}
+
 type ContactEditDraft = Omit<Contact, 'id'>
 
 type ContactRow = {
   id: string
-  name: string
-  field: string
-  role: string
+  full_name: string
+  gender: string | null
+  field_of_work: string | null
+  highest_degree_and_date: string | null
+  current_title: string
+  current_employer: string
+  previous_work: string | null
+  willing_to_be_contacted: boolean | null
+  best_form_of_contact: string
   location: string
-  connection_type: string
-  notes: string
 }
 
 type InternshipRow = {
   id: string
-  title: string
-  organization: string
-  focus: string
-  term: string
+  name: string
+  institution: string
   location: string
-  format: string
-  application_window: string
-  fit: string
-  description: string
-  next_step: string
+  summary: string
+  ideal_candidate: string | null
+  opportunity_type: string | null
+  deadline: string | null
+  website: string | null
 }
 
 type InternshipExperienceRow = {
@@ -80,6 +107,25 @@ type InternshipExperienceRow = {
   note: string
   created_at: string
   user_id: string | null
+}
+
+type AlumniSubmissionRow = {
+  id: string
+  full_name: string
+  gender: string | null
+  field_of_work: string | null
+  highest_degree_and_date: string | null
+  current_title: string
+  current_employer: string
+  previous_work: string | null
+  willing_to_be_contacted: boolean
+  best_form_of_contact: string
+  location: string
+  consent_to_share: boolean
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  reviewed_at: string | null
+  reviewed_by: string | null
 }
 
 type ExperienceDraft = {
@@ -95,6 +141,10 @@ const experienceDateFormatter = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
 })
 
+const idealCandidateOptions = ['pre-MD', 'pre-PhD', 'other']
+const opportunityTypeOptions = ['Clinical', 'Basic Science', 'Other']
+const contactFieldOptions = ['PT', 'MD', 'DDS', 'OT', 'PH', 'BSN', 'PA', 'Research']
+
 function createExperienceDraft(): ExperienceDraft {
   return {
     authorName: '',
@@ -105,28 +155,30 @@ function createExperienceDraft(): ExperienceDraft {
 function mapContactRow(row: ContactRow): Contact {
   return {
     id: row.id,
-    name: row.name,
-    field: row.field,
-    role: row.role,
+    fullName: row.full_name,
+    gender: row.gender ?? '',
+    fieldOfWork: row.field_of_work ?? '',
+    highestDegreeAndDate: row.highest_degree_and_date ?? '',
+    currentTitle: row.current_title,
+    currentEmployer: row.current_employer,
+    previousWork: row.previous_work ?? '',
+    willingToBeContacted: row.willing_to_be_contacted,
+    bestFormOfContact: row.best_form_of_contact,
     location: row.location,
-    connectionType: row.connection_type,
-    notes: row.notes,
   }
 }
 
 function mapInternshipRow(row: InternshipRow): Internship {
   return {
     id: row.id,
-    title: row.title,
-    organization: row.organization,
-    focus: row.focus,
-    term: row.term,
+    name: row.name,
+    institution: row.institution,
     location: row.location,
-    format: row.format,
-    applicationWindow: row.application_window,
-    fit: row.fit,
-    description: row.description,
-    nextStep: row.next_step,
+    summary: row.summary,
+    idealCandidate: row.ideal_candidate ?? '',
+    opportunityType: row.opportunity_type ?? '',
+    deadline: row.deadline ?? '',
+    website: row.website ?? '',
   }
 }
 
@@ -141,35 +193,69 @@ function mapInternshipExperienceRow(row: InternshipExperienceRow): InternshipExp
   }
 }
 
+function mapAlumniSubmissionRow(row: AlumniSubmissionRow): AlumniSubmission {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    gender: row.gender ?? '',
+    fieldOfWork: row.field_of_work ?? '',
+    highestDegreeAndDate: row.highest_degree_and_date ?? '',
+    currentTitle: row.current_title,
+    currentEmployer: row.current_employer,
+    previousWork: row.previous_work ?? '',
+    willingToBeContacted: row.willing_to_be_contacted,
+    bestFormOfContact: row.best_form_of_contact,
+    location: row.location,
+    consentToShare: row.consent_to_share,
+    status: row.status,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at,
+    reviewedBy: row.reviewed_by,
+  }
+}
+
 function formatExperienceDate(date: string): string {
   return experienceDateFormatter.format(new Date(date))
 }
+
+function getWebsiteHref(website: string): string {
+  return /^https?:\/\//i.test(website) ? website : `https://${website}`
+}
+
+function formatYesNo(value: boolean | null): string {
+  if (value === null) {
+    return 'Not provided'
+  }
+
+  return value ? 'Yes' : 'No'
+}
+
 type SubmissionFormData = {
   fullName: string
-  email: string
-  field: string
-  role: string
-  organization: string
+  gender: string
+  fieldOfWork: string
+  highestDegreeAndDate: string
+  currentTitle: string
+  currentEmployer: string
+  previousWork: string
+  willingToBeContacted: string
+  bestFormOfContact: string
   location: string
-  connectionType: string
-  topics: string
-  notes: string
-  preferredContact: string
-  mentoringInterest: string
+  consentToShare: boolean
 }
 
 const initialFormData: SubmissionFormData = {
   fullName: '',
-  email: '',
-  field: '',
-  role: '',
-  organization: '',
+  gender: '',
+  fieldOfWork: '',
+  highestDegreeAndDate: '',
+  currentTitle: '',
+  currentEmployer: '',
+  previousWork: '',
+  willingToBeContacted: '',
+  bestFormOfContact: '',
   location: '',
-  connectionType: '',
-  topics: '',
-  notes: '',
-  preferredContact: '',
-  mentoringInterest: '',
+  consentToShare: false,
 }
 
 type AuthGateScreenProps = {
@@ -317,6 +403,12 @@ function App() {
   const [formData, setFormData] = useState<SubmissionFormData>(initialFormData)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubmissionFormData, string>>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmittingAlumniForm, setIsSubmittingAlumniForm] = useState(false)
+  const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const [alumniSubmissions, setAlumniSubmissions] = useState<AlumniSubmission[]>([])
+  const [submissionReviewLoading, setSubmissionReviewLoading] = useState(false)
+  const [submissionReviewError, setSubmissionReviewError] = useState<string | null>(null)
+  const [submissionReviewSavingById, setSubmissionReviewSavingById] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     let isActive = true
@@ -416,6 +508,7 @@ function App() {
   useEffect(() => {
     if (!session) {
       setIsAdmin(false)
+      setAlumniSubmissions([])
       return
     }
 
@@ -426,6 +519,17 @@ function App() {
 
     void checkAdmin()
   }, [session])
+
+  useEffect(() => {
+    if (!session || !isAdmin) {
+      setAlumniSubmissions([])
+      setSubmissionReviewLoading(false)
+      setSubmissionReviewError(null)
+      return
+    }
+
+    void loadAlumniSubmissions()
+  }, [session, isAdmin])
 
   useEffect(() => {
     if (authLoading) {
@@ -467,8 +571,8 @@ function App() {
         { data: contactRows, error: contactsError },
         { data: internshipRows, error: internshipsError },
       ] = await Promise.all([
-        supabase.from('contacts').select('*').order('name'),
-        supabase.from('internships').select('*').order('title'),
+        supabase.from('contacts').select('*').order('full_name'),
+        supabase.from('internships').select('*').order('name'),
       ])
 
       if (!isActive) {
@@ -499,14 +603,28 @@ function App() {
     }
   }, [authLoading, session])
 
-  const fields = ['All fields', ...new Set(contacts.map((contact) => contact.field))]
+  const fields = [
+    'All fields',
+    ...new Set([
+      ...contactFieldOptions,
+      ...contacts.map((contact) => contact.fieldOfWork).filter(Boolean),
+    ]),
+  ]
+  const normalizedPath = window.location.pathname.replace(/\/$/, '')
+  const isPublicAlumniSubmissionRoute =
+    normalizedPath === '/alumni-submit' || window.location.hash === '#alumni-submit'
 
   const visibleContacts =
     selectedField === 'All fields'
       ? contacts
-      : contacts.filter((contact) => contact.field === selectedField)
+      : contacts.filter((contact) => contact.fieldOfWork === selectedField)
 
-  const signedInUserEmail = session?.user.email ?? null
+  function navigateToView(nextView: View) {
+    setView(nextView)
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    })
+  }
 
   async function handleGoogleSignIn() {
     setAuthError(null)
@@ -531,13 +649,35 @@ function App() {
 
   async function handleSignOut() {
     setAuthError(null)
-    setView('home')
+    navigateToView('home')
 
     const { error: signOutError } = await supabase.auth.signOut()
 
     if (signOutError) {
       setAuthError(signOutError.message)
     }
+  }
+
+  async function loadAlumniSubmissions() {
+    setSubmissionReviewLoading(true)
+    setSubmissionReviewError(null)
+
+    const { data, error: submissionsError } = await supabase
+      .from('alumni_submissions')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+
+    if (submissionsError) {
+      setSubmissionReviewError(submissionsError.message)
+      setSubmissionReviewLoading(false)
+      return
+    }
+
+    setAlumniSubmissions(
+      ((data as AlumniSubmissionRow[] | null) ?? []).map((row) => mapAlumniSubmissionRow(row)),
+    )
+    setSubmissionReviewLoading(false)
   }
 
   async function loadExperiencesForInternship(internshipId: string, forceRefresh = false) {
@@ -725,12 +865,16 @@ function App() {
   function handleContactEditStart(contact: Contact) {
     setEditingContactId(contact.id)
     setContactEditDraft({
-      name: contact.name,
-      field: contact.field,
-      role: contact.role,
+      fullName: contact.fullName,
+      gender: contact.gender,
+      fieldOfWork: contact.fieldOfWork,
+      highestDegreeAndDate: contact.highestDegreeAndDate,
+      currentTitle: contact.currentTitle,
+      currentEmployer: contact.currentEmployer,
+      previousWork: contact.previousWork,
+      willingToBeContacted: contact.willingToBeContacted,
+      bestFormOfContact: contact.bestFormOfContact,
       location: contact.location,
-      connectionType: contact.connectionType,
-      notes: contact.notes,
     })
   }
 
@@ -739,7 +883,7 @@ function App() {
     setContactEditDraft(null)
   }
 
-  function handleContactEditDraftChange(field: keyof ContactEditDraft, value: string) {
+  function handleContactEditDraftChange(field: keyof ContactEditDraft, value: string | boolean | null) {
     setContactEditDraft((current) => (current ? { ...current, [field]: value } : current))
   }
 
@@ -753,12 +897,16 @@ function App() {
     const { error: updateError } = await supabase
       .from('contacts')
       .update({
-        name: contactEditDraft.name,
-        field: contactEditDraft.field,
-        role: contactEditDraft.role,
+        full_name: contactEditDraft.fullName,
+        gender: contactEditDraft.gender || null,
+        field_of_work: contactEditDraft.fieldOfWork || null,
+        highest_degree_and_date: contactEditDraft.highestDegreeAndDate || null,
+        current_title: contactEditDraft.currentTitle,
+        current_employer: contactEditDraft.currentEmployer,
+        previous_work: contactEditDraft.previousWork || null,
+        willing_to_be_contacted: contactEditDraft.willingToBeContacted,
+        best_form_of_contact: contactEditDraft.bestFormOfContact,
         location: contactEditDraft.location,
-        connection_type: contactEditDraft.connectionType,
-        notes: contactEditDraft.notes,
       })
       .eq('id', contactId)
 
@@ -799,16 +947,14 @@ function App() {
   function handleInternshipEditStart(internship: Internship) {
     setEditingInternshipId(internship.id)
     setInternshipEditDraft({
-      title: internship.title,
-      organization: internship.organization,
-      focus: internship.focus,
-      term: internship.term,
+      name: internship.name,
+      institution: internship.institution,
       location: internship.location,
-      format: internship.format,
-      applicationWindow: internship.applicationWindow,
-      fit: internship.fit,
-      description: internship.description,
-      nextStep: internship.nextStep,
+      summary: internship.summary,
+      idealCandidate: internship.idealCandidate,
+      opportunityType: internship.opportunityType,
+      deadline: internship.deadline,
+      website: internship.website,
     })
   }
 
@@ -831,16 +977,14 @@ function App() {
     const { error: updateError } = await supabase
       .from('internships')
       .update({
-        title: internshipEditDraft.title,
-        organization: internshipEditDraft.organization,
-        focus: internshipEditDraft.focus,
-        term: internshipEditDraft.term,
+        name: internshipEditDraft.name,
+        institution: internshipEditDraft.institution,
         location: internshipEditDraft.location,
-        format: internshipEditDraft.format,
-        application_window: internshipEditDraft.applicationWindow,
-        fit: internshipEditDraft.fit,
-        description: internshipEditDraft.description,
-        next_step: internshipEditDraft.nextStep,
+        summary: internshipEditDraft.summary,
+        ideal_candidate: internshipEditDraft.idealCandidate || null,
+        opportunity_type: internshipEditDraft.opportunityType || null,
+        deadline: internshipEditDraft.deadline || null,
+        website: internshipEditDraft.website || null,
       })
       .eq('id', internshipId)
 
@@ -918,10 +1062,14 @@ function App() {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) {
     const { name, value } = event.target
+    const nextValue =
+      event.target instanceof HTMLInputElement && event.target.type === 'checkbox'
+        ? event.target.checked
+        : value
 
     setFormData((current) => ({
       ...current,
-      [name]: value,
+      [name]: nextValue,
     }))
 
     setFormErrors((current) => ({
@@ -934,27 +1082,27 @@ function App() {
     const nextErrors: Partial<Record<keyof SubmissionFormData, string>> = {}
 
     if (!formData.fullName.trim()) nextErrors.fullName = 'Please enter your name.'
-    if (!formData.email.trim()) nextErrors.email = 'Please enter your email address.'
-    if (!formData.field.trim()) nextErrors.field = 'Please enter your profession or career field.'
-    if (!formData.role.trim()) nextErrors.role = 'Please enter your current role or title.'
+    if (!formData.fieldOfWork.trim()) nextErrors.fieldOfWork = 'Please select your field of work.'
+    if (!formData.currentTitle.trim()) nextErrors.currentTitle = 'Please enter your current title.'
+    if (!formData.currentEmployer.trim()) {
+      nextErrors.currentEmployer = 'Please enter your current employer.'
+    }
     if (!formData.location.trim()) nextErrors.location = 'Please enter your location.'
-    if (!formData.connectionType.trim()) {
-      nextErrors.connectionType = 'Please select how you would like to be listed.'
+    if (!formData.willingToBeContacted.trim()) {
+      nextErrors.willingToBeContacted = 'Please let us know if you are willing to be contacted.'
     }
-    if (!formData.topics.trim()) {
-      nextErrors.topics = 'Please share at least one area students can ask you about.'
+    if (!formData.bestFormOfContact.trim()) {
+      nextErrors.bestFormOfContact = 'Please choose the best form of contact.'
     }
-    if (!formData.preferredContact.trim()) {
-      nextErrors.preferredContact = 'Please choose a preferred contact method.'
-    }
-    if (!formData.mentoringInterest.trim()) {
-      nextErrors.mentoringInterest = 'Please let us know if you are willing to mentor.'
+    if (!formData.consentToShare) {
+      nextErrors.consentToShare =
+        'Please confirm that this information may be shared with Sattler pre-health students.'
     }
 
     return nextErrors
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextErrors = validateForm()
@@ -962,12 +1110,316 @@ function App() {
     if (Object.keys(nextErrors).length > 0) {
       setFormErrors(nextErrors)
       setIsSubmitted(false)
+      setSubmissionError(null)
       return
     }
 
+    setIsSubmittingAlumniForm(true)
     setFormErrors({})
+    setSubmissionError(null)
+
+    const { error: submitError } = await supabase.from('alumni_submissions').insert({
+      full_name: formData.fullName.trim(),
+      gender: formData.gender.trim() || null,
+      field_of_work: formData.fieldOfWork || null,
+      highest_degree_and_date: formData.highestDegreeAndDate.trim() || null,
+      current_title: formData.currentTitle.trim(),
+      current_employer: formData.currentEmployer.trim(),
+      previous_work: formData.previousWork.trim() || null,
+      willing_to_be_contacted: formData.willingToBeContacted === 'true',
+      best_form_of_contact: formData.bestFormOfContact.trim(),
+      location: formData.location.trim(),
+      consent_to_share: formData.consentToShare,
+      status: 'pending',
+    })
+
+    setIsSubmittingAlumniForm(false)
+
+    if (submitError) {
+      setSubmissionError(submitError.message)
+      setIsSubmitted(false)
+      return
+    }
+
     setIsSubmitted(true)
     setFormData(initialFormData)
+
+    if (isAdmin) {
+      void loadAlumniSubmissions()
+    }
+  }
+
+  async function handleReviewSubmission(
+    submission: AlumniSubmission,
+    nextStatus: 'approved' | 'rejected',
+  ) {
+    setSubmissionReviewSavingById((current) => ({ ...current, [submission.id]: true }))
+    setSubmissionReviewError(null)
+
+    if (nextStatus === 'approved') {
+      const { data: insertedContactRow, error: insertContactError } = await supabase
+        .from('contacts')
+        .insert({
+          full_name: submission.fullName,
+          gender: submission.gender || null,
+          field_of_work: submission.fieldOfWork || null,
+          highest_degree_and_date: submission.highestDegreeAndDate || null,
+          current_title: submission.currentTitle,
+          current_employer: submission.currentEmployer,
+          previous_work: submission.previousWork || null,
+          willing_to_be_contacted: submission.willingToBeContacted,
+          best_form_of_contact: submission.bestFormOfContact,
+          location: submission.location,
+        })
+        .select('*')
+        .single()
+
+      if (insertContactError) {
+        setSubmissionReviewSavingById((current) => ({ ...current, [submission.id]: false }))
+        setSubmissionReviewError(insertContactError.message)
+        return
+      }
+
+      if (insertedContactRow) {
+        setContacts((current) =>
+          [...current, mapContactRow(insertedContactRow as ContactRow)].sort((a, b) =>
+            a.fullName.localeCompare(b.fullName),
+          ),
+        )
+      }
+    }
+
+    const { error: updateSubmissionError } = await supabase
+      .from('alumni_submissions')
+      .update({
+        status: nextStatus,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: session?.user.id ?? null,
+      })
+      .eq('id', submission.id)
+
+    setSubmissionReviewSavingById((current) => ({ ...current, [submission.id]: false }))
+
+    if (updateSubmissionError) {
+      setSubmissionReviewError(updateSubmissionError.message)
+      return
+    }
+
+    setAlumniSubmissions((current) => current.filter((item) => item.id !== submission.id))
+  }
+
+  function renderAlumniSubmissionContent(isPublicPage = false) {
+    return (
+      <>
+        <section className="submit-layout">
+          <div className="hero-copy">
+            <p className="section-label">Join the network</p>
+            <h2>Share your story so students know who they can learn from.</h2>
+            <p className="lead">
+              Alumni and health professionals can use this form to submit their information for
+              the Sattler Pre-Health Association directory. Submissions are reviewed before they
+              appear on the alumni contacts page.
+            </p>
+          </div>
+
+          <aside className="signal-card">
+            <p className="section-label">{isPublicPage ? 'Private review' : 'Shareable link'}</p>
+            <ul>
+              <li>Share your field, degree, current title, and employer.</li>
+              <li>Mention previous work that gives context to your path.</li>
+              <li>Choose whether and how students or club leaders may contact you.</li>
+            </ul>
+            {!isPublicPage ? (
+              <p className="share-link">
+                <a href="/alumni-submit" target="_blank" rel="noreferrer">
+                  Open the shareable alumni form
+                </a>
+              </p>
+            ) : null}
+          </aside>
+        </section>
+
+        <section className="submit-form-panel">
+          <div className="submit-form-header">
+            <div>
+              <p className="section-label">Submission form</p>
+              <h3>Tell us a little about yourself.</h3>
+            </div>
+            {isSubmitted ? (
+              <p className="success-message">
+                Thank you for submitting your information. A club leader will review it before it
+                appears in the alumni directory.
+              </p>
+            ) : null}
+            {submissionError ? (
+              <p className="auth-feedback auth-feedback-error">{submissionError}</p>
+            ) : null}
+          </div>
+
+          <form className="submit-form" onSubmit={handleSubmit} noValidate>
+            <label className="form-field">
+              <span>Full Name</span>
+              <input
+                name="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={handleInputChange}
+              />
+              {formErrors.fullName ? <small>{formErrors.fullName}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Gender</span>
+              <input
+                name="gender"
+                type="text"
+                value={formData.gender}
+                onChange={handleInputChange}
+              />
+            </label>
+
+            <label className="form-field">
+              <span>Field of Work</span>
+              <select
+                name="fieldOfWork"
+                value={formData.fieldOfWork}
+                onChange={handleInputChange}
+              >
+                <option value="">Select an option</option>
+                {contactFieldOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {formErrors.fieldOfWork ? <small>{formErrors.fieldOfWork}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Highest Degree and Date obtained</span>
+              <input
+                name="highestDegreeAndDate"
+                type="text"
+                value={formData.highestDegreeAndDate}
+                onChange={handleInputChange}
+              />
+            </label>
+
+            <label className="form-field">
+              <span>Current Title</span>
+              <input
+                name="currentTitle"
+                type="text"
+                value={formData.currentTitle}
+                onChange={handleInputChange}
+              />
+              {formErrors.currentTitle ? <small>{formErrors.currentTitle}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Current Employer</span>
+              <input
+                name="currentEmployer"
+                type="text"
+                value={formData.currentEmployer}
+                onChange={handleInputChange}
+              />
+              {formErrors.currentEmployer ? <small>{formErrors.currentEmployer}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Any different previous work</span>
+              <textarea
+                name="previousWork"
+                rows={4}
+                value={formData.previousWork}
+                onChange={handleInputChange}
+              />
+            </label>
+
+            <label className="form-field">
+              <span>Willing to Be Contacted?</span>
+              <select
+                name="willingToBeContacted"
+                value={formData.willingToBeContacted}
+                onChange={handleInputChange}
+              >
+                <option value="">Select one</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+              {formErrors.willingToBeContacted ? (
+                <small>{formErrors.willingToBeContacted}</small>
+              ) : null}
+            </label>
+
+            <label className="form-field">
+              <span>Best form of contact?</span>
+              <select
+                name="bestFormOfContact"
+                value={formData.bestFormOfContact}
+                onChange={handleInputChange}
+              >
+                <option value="">Select one</option>
+                <option value="Phone">Phone</option>
+                <option value="Email">Email</option>
+              </select>
+              {formErrors.bestFormOfContact ? <small>{formErrors.bestFormOfContact}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Location</span>
+              <input
+                name="location"
+                type="text"
+                value={formData.location}
+                onChange={handleInputChange}
+              />
+              {formErrors.location ? <small>{formErrors.location}</small> : null}
+            </label>
+
+            <label className="form-field form-field-wide consent-field">
+              <input
+                name="consentToShare"
+                type="checkbox"
+                checked={formData.consentToShare}
+                onChange={handleInputChange}
+              />
+              <span>
+                I agree that this information may be shared with Sattler pre-health students after
+                review by a club leader.
+              </span>
+              {formErrors.consentToShare ? <small>{formErrors.consentToShare}</small> : null}
+            </label>
+
+            <div className="form-actions form-field-wide">
+              <button className="primary-button" type="submit" disabled={isSubmittingAlumniForm}>
+                {isSubmittingAlumniForm ? 'Submitting...' : 'Submit information'}
+              </button>
+            </div>
+          </form>
+        </section>
+      </>
+    )
+  }
+
+  if (isPublicAlumniSubmissionRoute) {
+    return (
+      <div className="site-shell">
+        <header className="topbar public-topbar">
+          <div className="topbar-brand">
+            <img
+              className="topbar-logo"
+              src={preHealthLogo}
+              alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+            />
+            <p className="eyebrow">Sattler College Pre-Health Club</p>
+          </div>
+        </header>
+
+        <main className="page">{renderAlumniSubmissionContent(true)}</main>
+      </div>
+    )
   }
 
   if (authLoading) {
@@ -981,34 +1433,45 @@ function App() {
   return (
     <div className="site-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Sattler College Pre-Health Club</p>
-          <h1>Find mentors. Ask questions. Move forward.</h1>
+        <div className="topbar-brand">
+          <img
+            className="topbar-logo"
+            src={preHealthLogo}
+            alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+          />
+          <p className="eyebrow">Sattler College Pre-Health Association</p>
         </div>
         <div className="topbar-actions">
           <nav className="nav">
             <button
               className={view === 'home' ? 'nav-link active' : 'nav-link'}
-              onClick={() => setView('home')}
+              onClick={() => navigateToView('home')}
             >
               Main page
             </button>
             <button
               className={view === 'directory' ? 'nav-link active' : 'nav-link'}
-              onClick={() => setView('directory')}
+              onClick={() => navigateToView('directory')}
             >
               Alumni contacts
             </button>
             <button
               className={view === 'internships' ? 'nav-link active' : 'nav-link'}
-              onClick={() => setView('internships')}
+              onClick={() => navigateToView('internships')}
             >
               Internships
             </button>
+            {isAdmin ? (
+              <button
+                className={view === 'review' ? 'nav-link active' : 'nav-link'}
+                onClick={() => navigateToView('review')}
+              >
+                Review submissions
+              </button>
+            ) : null}
           </nav>
 
           <div className="session-tools">
-            {signedInUserEmail ? <p className="session-badge">{signedInUserEmail}</p> : null}
             <button
               type="button"
               className="nav-link"
@@ -1024,6 +1487,20 @@ function App() {
 
       {view === 'home' ? (
         <main className="page">
+          <section
+            className="home-hero"
+            style={{
+              backgroundImage: `linear-gradient(rgba(10, 20, 38, 0.58), rgba(10, 20, 38, 0.58)), url(${homeHeroImage})`,
+            }}
+          >
+            <div className="home-hero-copy">
+              <p className="section-label">Sattler Pre-Health Association</p>
+              <h1>Find</h1>
+              <h1>Ask questions</h1>
+              <h1>Move forward</h1>
+            </div>
+          </section>
+
           <section className="hero-panel">
             <div className="hero-copy">
               <p className="section-label">Sattler Pre-Health Association</p>
@@ -1033,7 +1510,7 @@ function App() {
                 alumni, and reach out with clarity and confidence. To begin browsing alumnis or research oppurtunities navigate to the respective page. 
               </p>
               <div className="hero-actions">
-                <button className="primary-button" onClick={() => setView('directory')}>
+                <button className="primary-button" onClick={() => navigateToView('directory')}>
                   Browse alumni
                 </button>
                 <a className="secondary-link" href="#how-it-works">
@@ -1044,14 +1521,6 @@ function App() {
 
             <div className="hero-side-stack">
               <aside className="brand-panel">
-                <div className="brand-panel-frame">
-                  <img
-                    className="brand-logo"
-                    src={preHealthLogo}
-                    alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
-                  />
-                </div>
-
                 <div className="brand-panel-copy">
                   <h3>Connect. Equip. Serve.</h3>
                   <p>
@@ -1063,35 +1532,35 @@ function App() {
           </section>
 
           <section id="how-it-works" className="content-grid">
-            <article className="content-card">
+            <button
+              type="button"
+              className="content-card content-card-photo"
+              style={{ backgroundImage: `url(${mentorCardImage})` }}
+              onClick={() => navigateToView('directory')}
+            >
               <p className="section-label">mentor connections</p>
               <h3>Connect with Alumni Mentors</h3>
-              <ul>
-                <li>Explain the mission in one sentence.</li>
-                <li>Show how students can use the site in a few quick steps.</li>
-                <li>Invite alumni and professionals to participate.</li>
-              </ul>
-            </article>
+            </button>
 
-            <article className="content-card">
+            <button
+              type="button"
+              className="content-card content-card-photo"
+              style={{ backgroundImage: `url(${internshipCardImage})` }}
+              onClick={() => navigateToView('internships')}
+            >
               <p className="section-label">career discovery</p>
               <h3>Discover Internships and Experiences</h3>
-              <ul>
-                <li>Name, field, current role, location, and best topics to discuss.</li>
-                <li>Clear categories like medicine, dentistry, PT, nursing, or public health.</li>
-                <li>Simple filters so students can find relevant mentors quickly.</li>
-              </ul>
-            </article>
+            </button>
 
-            <article className="content-card">
+            <button
+              type="button"
+              className="content-card content-card-photo"
+              style={{ backgroundImage: `url(${careerCardImage})` }}
+              onClick={() => navigateToView('internships')}
+            >
               <p className="section-label">real world experience</p>
               <h3>Explore Healthcare Paths</h3>
-              <ul>
-                <li>Search and filtering by major, profession, and application stage.</li>
-                <li>A request form for students who want an introduction.</li>
-                <li>Admin tools for club leaders to update alumni entries each semester.</li>
-              </ul>
-            </article>
+            </button>
           </section>
         </main>
       ) : view === 'directory' ? (
@@ -1101,7 +1570,7 @@ function App() {
               <p className="section-label">Alumni directory</p>
               <h2>Start with a small, high-trust list of mentors.</h2>
               <p className="lead">
-                Even ten strong contacts is enough to make this page valuable in the first version.
+                Even ten strong contacts can make a huge difference in your confidence and clarity. Browse the directory to find alumni mentors you can reach out to for advice, informational interviews, or shadowing opportunities.
               </p>
             </div>
 
@@ -1120,7 +1589,7 @@ function App() {
                 </select>
               </label>
 
-              <button className="primary-button" onClick={() => setView('submit')}>
+              <button className="primary-button" onClick={() => navigateToView('submit')}>
                 Submit Your Information
               </button>
             </div>
@@ -1148,27 +1617,105 @@ function App() {
                         <p className="section-label">Edit contact</p>
                       </div>
                       <label className="experience-form-field">
-                        <span>Name</span>
+                        <span>Full Name</span>
                         <input
                           type="text"
-                          value={contactEditDraft.name}
-                          onChange={(e) => handleContactEditDraftChange('name', e.target.value)}
+                          value={contactEditDraft.fullName}
+                          onChange={(e) => handleContactEditDraftChange('fullName', e.target.value)}
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Field</span>
+                        <span>Gender</span>
                         <input
                           type="text"
-                          value={contactEditDraft.field}
-                          onChange={(e) => handleContactEditDraftChange('field', e.target.value)}
+                          value={contactEditDraft.gender}
+                          onChange={(e) => handleContactEditDraftChange('gender', e.target.value)}
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Role</span>
+                        <span>Field of Work</span>
+                        <select
+                          value={contactEditDraft.fieldOfWork}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('fieldOfWork', e.target.value)
+                          }
+                        >
+                          <option value="">Select an option</option>
+                          {contactFieldOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Highest Degree and Date obtained</span>
                         <input
                           type="text"
-                          value={contactEditDraft.role}
-                          onChange={(e) => handleContactEditDraftChange('role', e.target.value)}
+                          value={contactEditDraft.highestDegreeAndDate}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('highestDegreeAndDate', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Current Title</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.currentTitle}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('currentTitle', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Current Employer</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.currentEmployer}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('currentEmployer', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Any different previous work</span>
+                        <textarea
+                          rows={3}
+                          value={contactEditDraft.previousWork}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('previousWork', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Willing to Be Contacted?</span>
+                        <select
+                          value={
+                            contactEditDraft.willingToBeContacted === null
+                              ? ''
+                              : String(contactEditDraft.willingToBeContacted)
+                          }
+                          onChange={(e) =>
+                            handleContactEditDraftChange(
+                              'willingToBeContacted',
+                              e.target.value === '' ? null : e.target.value === 'true',
+                            )
+                          }
+                        >
+                          <option value="">Select one</option>
+                          <option value="true">Yes</option>
+                          <option value="false">No</option>
+                        </select>
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Best form of contact?</span>
+                        <input
+                          type="text"
+                          value={contactEditDraft.bestFormOfContact}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('bestFormOfContact', e.target.value)
+                          }
                         />
                       </label>
                       <label className="experience-form-field">
@@ -1179,24 +1726,6 @@ function App() {
                           onChange={(e) =>
                             handleContactEditDraftChange('location', e.target.value)
                           }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Connection type</span>
-                        <input
-                          type="text"
-                          value={contactEditDraft.connectionType}
-                          onChange={(e) =>
-                            handleContactEditDraftChange('connectionType', e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Notes</span>
-                        <textarea
-                          rows={3}
-                          value={contactEditDraft.notes}
-                          onChange={(e) => handleContactEditDraftChange('notes', e.target.value)}
                         />
                       </label>
                       <div className="contact-admin-actions">
@@ -1222,21 +1751,46 @@ function App() {
                   ) : (
                     <>
                       <div className="contact-header">
-                        <p className="contact-field">{contact.field}</p>
-                        <h3>{contact.name}</h3>
+                        <p className="contact-field">{contact.fieldOfWork || 'Field not provided'}</p>
+                        <h3>{contact.fullName}</h3>
                       </div>
-                      <p className="contact-role">{contact.role}</p>
                       <dl className="contact-meta">
+                        <div>
+                          <dt>Gender</dt>
+                          <dd>{contact.gender || 'Not provided'}</dd>
+                        </div>
+                        <div>
+                          <dt>Field of Work</dt>
+                          <dd>{contact.fieldOfWork || 'Not provided'}</dd>
+                        </div>
+                        <div>
+                          <dt>Highest Degree and Date obtained</dt>
+                          <dd>{contact.highestDegreeAndDate || 'Not provided'}</dd>
+                        </div>
+                        <div>
+                          <dt>Current Title</dt>
+                          <dd>{contact.currentTitle}</dd>
+                        </div>
+                        <div>
+                          <dt>Current Employer</dt>
+                          <dd>{contact.currentEmployer}</dd>
+                        </div>
+                        <div>
+                          <dt>Willing to Be Contacted?</dt>
+                          <dd>{formatYesNo(contact.willingToBeContacted)}</dd>
+                        </div>
+                        <div>
+                          <dt>Best form of contact?</dt>
+                          <dd>{contact.bestFormOfContact}</dd>
+                        </div>
                         <div>
                           <dt>Location</dt>
                           <dd>{contact.location}</dd>
                         </div>
-                        <div>
-                          <dt>Best for</dt>
-                          <dd>{contact.connectionType}</dd>
-                        </div>
                       </dl>
-                      <p className="contact-notes">{contact.notes}</p>
+                      <p className="contact-notes">
+                        {contact.previousWork || 'No previous work listed.'}
+                      </p>
                       {isAdmin ? (
                         <div className="contact-admin-actions">
                           <button
@@ -1266,174 +1820,127 @@ function App() {
           </section>
         </main>
       ) : view === 'submit' ? (
+        <main className="page">{renderAlumniSubmissionContent()}</main>
+      ) : view === 'review' ? (
         <main className="page">
-          <section className="submit-layout">
-            <div className="hero-copy">
-              <p className="section-label">Join the network</p>
-              <h2>Share your story so students know who they can learn from.</h2>
+          <section className="directory-header">
+            <div>
+              <p className="section-label">Admin review</p>
+              <h2>Review alumni submissions before they enter the directory.</h2>
               <p className="lead">
-                Alumni and health professionals can use this form to submit their information for
-                the Sattler Pre-Health Association directory. We want students to find mentors,
-                ask thoughtful questions, and better understand the paths in front of them.
+                Approving a submission creates a new alumni contact. Rejecting it keeps it out of
+                the contacts page.
               </p>
             </div>
 
-            <aside className="signal-card">
-              <p className="section-label">What to include</p>
-              <ul>
-                <li>Share the areas where you feel most helpful to students.</li>
-                <li>Use the notes section to mention anything that gives context to your path.</li>
-                <li>Choose how you would prefer students or club leaders to contact you.</li>
-              </ul>
-            </aside>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={submissionReviewLoading}
+              onClick={() => {
+                void loadAlumniSubmissions()
+              }}
+            >
+              {submissionReviewLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
           </section>
 
-          <section className="submit-form-panel">
-            <div className="submit-form-header">
-              <div>
-                <p className="section-label">Submission form</p>
-                <h3>Tell us a little about yourself.</h3>
-              </div>
-              {isSubmitted ? (
-                <p className="success-message">
-                  Thank you for submitting your information. We&apos;ll use it to help connect
-                  students with mentors and professionals they can learn from.
-                </p>
-              ) : null}
-            </div>
+          <section className="review-list">
+            {!isAdmin ? (
+              <article className="content-card status-card">
+                <p>You need admin access to review alumni submissions.</p>
+              </article>
+            ) : submissionReviewError ? (
+              <article className="content-card status-card">
+                <p>{submissionReviewError}</p>
+              </article>
+            ) : submissionReviewLoading ? (
+              <article className="content-card status-card">
+                <p>Loading pending submissions...</p>
+              </article>
+            ) : alumniSubmissions.length === 0 ? (
+              <article className="content-card status-card">
+                <p>No pending alumni submissions.</p>
+              </article>
+            ) : (
+              alumniSubmissions.map((submission) => (
+                <article key={submission.id} className="review-card">
+                  <div className="contact-header">
+                    <div>
+                      <p className="contact-field">
+                        {submission.fieldOfWork || 'Field not provided'}
+                      </p>
+                      <h3>{submission.fullName}</h3>
+                    </div>
+                    <p className="review-date">
+                      Submitted {formatExperienceDate(submission.createdAt)}
+                    </p>
+                  </div>
 
-            <form className="submit-form" onSubmit={handleSubmit} noValidate>
-              <label className="form-field">
-                <span>Full Name</span>
-                <input
-                  name="fullName"
-                  type="text"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                />
-                {formErrors.fullName ? <small>{formErrors.fullName}</small> : null}
-              </label>
+                  <dl className="contact-meta">
+                    <div>
+                      <dt>Gender</dt>
+                      <dd>{submission.gender || 'Not provided'}</dd>
+                    </div>
+                    <div>
+                      <dt>Field of Work</dt>
+                      <dd>{submission.fieldOfWork || 'Not provided'}</dd>
+                    </div>
+                    <div>
+                      <dt>Highest Degree and Date obtained</dt>
+                      <dd>{submission.highestDegreeAndDate || 'Not provided'}</dd>
+                    </div>
+                    <div>
+                      <dt>Current Title</dt>
+                      <dd>{submission.currentTitle}</dd>
+                    </div>
+                    <div>
+                      <dt>Current Employer</dt>
+                      <dd>{submission.currentEmployer}</dd>
+                    </div>
+                    <div>
+                      <dt>Willing to Be Contacted?</dt>
+                      <dd>{formatYesNo(submission.willingToBeContacted)}</dd>
+                    </div>
+                    <div>
+                      <dt>Best form of contact?</dt>
+                      <dd>{submission.bestFormOfContact}</dd>
+                    </div>
+                    <div>
+                      <dt>Location</dt>
+                      <dd>{submission.location}</dd>
+                    </div>
+                  </dl>
 
-              <label className="form-field">
-                <span>Email Address</span>
-                <input
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                />
-                {formErrors.email ? <small>{formErrors.email}</small> : null}
-              </label>
+                  <p className="contact-notes">
+                    {submission.previousWork || 'No previous work listed.'}
+                  </p>
 
-              <label className="form-field">
-                <span>Profession / Career Field</span>
-                <input
-                  name="field"
-                  type="text"
-                  value={formData.field}
-                  onChange={handleInputChange}
-                />
-                {formErrors.field ? <small>{formErrors.field}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Current Role / Title</span>
-                <input name="role" type="text" value={formData.role} onChange={handleInputChange} />
-                {formErrors.role ? <small>{formErrors.role}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Organization or School</span>
-                <input
-                  name="organization"
-                  type="text"
-                  value={formData.organization}
-                  onChange={handleInputChange}
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Location</span>
-                <input
-                  name="location"
-                  type="text"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                />
-                {formErrors.location ? <small>{formErrors.location}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Are you a Sattler alum, health professional, or both?</span>
-                <select
-                  name="connectionType"
-                  value={formData.connectionType}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select one</option>
-                  <option value="Sattler alum">Sattler alum</option>
-                  <option value="Health professional">Health professional</option>
-                  <option value="Both">Both</option>
-                </select>
-                {formErrors.connectionType ? <small>{formErrors.connectionType}</small> : null}
-              </label>
-
-              <label className="form-field form-field-wide">
-                <span>Areas students can ask you about</span>
-                <textarea
-                  name="topics"
-                  rows={4}
-                  value={formData.topics}
-                  onChange={handleInputChange}
-                />
-                {formErrors.topics ? <small>{formErrors.topics}</small> : null}
-              </label>
-
-              <label className="form-field form-field-wide">
-                <span>Short Bio / Notes</span>
-                <textarea
-                  name="notes"
-                  rows={4}
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Preferred contact method</span>
-                <select
-                  name="preferredContact"
-                  value={formData.preferredContact}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select one</option>
-                  <option value="Email">Email</option>
-                  <option value="Phone">Phone</option>
-                  <option value="Club leader introduction">Club leader introduction</option>
-                </select>
-                {formErrors.preferredContact ? <small>{formErrors.preferredContact}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Willingness to mentor students</span>
-                <select
-                  name="mentoringInterest"
-                  value={formData.mentoringInterest}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select one</option>
-                  <option value="Yes">Yes</option>
-                  <option value="No">No</option>
-                </select>
-                {formErrors.mentoringInterest ? <small>{formErrors.mentoringInterest}</small> : null}
-              </label>
-
-              <div className="form-actions form-field-wide">
-                <button className="primary-button" type="submit">
-                  Submit information
-                </button>
-              </div>
-            </form>
+                  <div className="contact-admin-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={submissionReviewSavingById[submission.id]}
+                      onClick={() => {
+                        void handleReviewSubmission(submission, 'approved')
+                      }}
+                    >
+                      {submissionReviewSavingById[submission.id] ? 'Saving...' : 'Approve'}
+                    </button>
+                    <button
+                      type="button"
+                      className="experience-delete-button"
+                      disabled={submissionReviewSavingById[submission.id]}
+                      onClick={() => {
+                        void handleReviewSubmission(submission, 'rejected')
+                      }}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
           </section>
         </main>
       ) : (
@@ -1450,22 +1957,28 @@ function App() {
             </div>
 
             <aside className="signal-card">
-              <p className="section-label">How to use this page</p>
-              <ul>
-                <li>Start with opportunities that match the kind of exposure you need next.</li>
-                <li>Pay attention to timing so you can prepare before application windows open.</li>
-                <li>Use the next-step note to turn interest into one concrete action.</li>
-              </ul>
+              <p className="section-label">How to Find and Apply for Internships</p>
+              <ol>
+                <li><strong>Look</strong> for opportunities that match your career plans. (For competitive programs, consider applying to approximately 20 internships.)</li>
+                <li><strong>List</strong> all potential internships by application deadline in a spreadsheet.</li>
+                <li><strong>Ask</strong> 2-3 professors or advisors to write a <i>strong</i> letter of recommendation.</li>
+                <li><strong>Share</strong> a list of potential internships with your letters writers at least 2 weeks before 
+                  the first deadline. Include notes about specific traits they should highlight for particular 
+                  internships.</li>
+                <li><strong>Optimize</strong> your personal statement and CV.</li>
+                <li><strong>Submit</strong> and <strong>Pray</strong>.</li>
+              </ol>
             </aside>
           </section>
 
           <section className="internship-overview">
             <article className="content-card">
-              <p className="section-label">Internships matter</p>
-              <h3>Internships are an opportunity to get experience and build your resume.</h3>
+              <p className="section-label">Why Internships</p>
+              <h3>Explore your future career through real-world internship experience.</h3>
               <p>
-                Good internships give more than a line on a resume. They help students see
-                workflows, ask better questions, and notice which settings energize them.
+                 Internships bridge the gap between classroom learning and your future career, helping 
+                 you test and refine your goals before fully committing to a path. By conducting real-world 
+                 work and engaging with professionals, you grow intellectually, socially, and gain clarity about your future.
               </p>
             </article>
 
@@ -1473,8 +1986,8 @@ function App() {
               <p className="section-label">What to look for</p>
               <h3>Choose opportunities with clear learning value.</h3>
               <p>
-                Strong options usually offer mentorship, direct observation, and enough
-                structure for you to understand how the organization actually serves people.
+                Strong internship options relate to and align with personal career considerations. They 
+                offer strong mentorship, networking opportunities, soft-skills training.
               </p>
             </article>
           </section>
@@ -1501,37 +2014,21 @@ function App() {
                         <p className="section-label">Edit internship</p>
                       </div>
                       <label className="experience-form-field">
-                        <span>Title</span>
+                        <span>Name of Internship</span>
                         <input
                           type="text"
-                          value={internshipEditDraft.title}
-                          onChange={(e) => handleInternshipEditDraftChange('title', e.target.value)}
+                          value={internshipEditDraft.name}
+                          onChange={(e) => handleInternshipEditDraftChange('name', e.target.value)}
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Organization</span>
+                        <span>Institution</span>
                         <input
                           type="text"
-                          value={internshipEditDraft.organization}
+                          value={internshipEditDraft.institution}
                           onChange={(e) =>
-                            handleInternshipEditDraftChange('organization', e.target.value)
+                            handleInternshipEditDraftChange('institution', e.target.value)
                           }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Focus</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.focus}
-                          onChange={(e) => handleInternshipEditDraftChange('focus', e.target.value)}
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Term</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.term}
-                          onChange={(e) => handleInternshipEditDraftChange('term', e.target.value)}
                         />
                       </label>
                       <label className="experience-form-field">
@@ -1545,50 +2042,64 @@ function App() {
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Format</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.format}
-                          onChange={(e) =>
-                            handleInternshipEditDraftChange('format', e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Application window</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.applicationWindow}
-                          onChange={(e) =>
-                            handleInternshipEditDraftChange('applicationWindow', e.target.value)
-                          }
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Best fit</span>
-                        <input
-                          type="text"
-                          value={internshipEditDraft.fit}
-                          onChange={(e) => handleInternshipEditDraftChange('fit', e.target.value)}
-                        />
-                      </label>
-                      <label className="experience-form-field">
-                        <span>Description</span>
+                        <span>Summary</span>
                         <textarea
                           rows={3}
-                          value={internshipEditDraft.description}
+                          value={internshipEditDraft.summary}
                           onChange={(e) =>
-                            handleInternshipEditDraftChange('description', e.target.value)
+                            handleInternshipEditDraftChange('summary', e.target.value)
                           }
                         />
                       </label>
                       <label className="experience-form-field">
-                        <span>Next step</span>
+                        <span>Ideal Candidate</span>
+                        <select
+                          value={internshipEditDraft.idealCandidate}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('idealCandidate', e.target.value)
+                          }
+                        >
+                          <option value="">Select an option</option>
+                          {idealCandidateOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Clinical or Basic Science or Other</span>
+                        <select
+                          value={internshipEditDraft.opportunityType}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('opportunityType', e.target.value)
+                          }
+                        >
+                          <option value="">Select an option</option>
+                          {opportunityTypeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Deadline</span>
                         <input
                           type="text"
-                          value={internshipEditDraft.nextStep}
+                          value={internshipEditDraft.deadline}
                           onChange={(e) =>
-                            handleInternshipEditDraftChange('nextStep', e.target.value)
+                            handleInternshipEditDraftChange('deadline', e.target.value)
+                          }
+                        />
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Website</span>
+                        <input
+                          type="text"
+                          value={internshipEditDraft.website}
+                          onChange={(e) =>
+                            handleInternshipEditDraftChange('website', e.target.value)
                           }
                         />
                       </label>
@@ -1616,40 +2127,62 @@ function App() {
                     <>
                   <div className="internship-header">
                     <div>
-                      <p className="contact-field">{internship.focus}</p>
-                      <h3>{internship.title}</h3>
+                      <p className="contact-field">
+                        {internship.opportunityType || 'Internship'}
+                      </p>
+                      <h3>{internship.name}</h3>
                     </div>
-                    <p className="internship-organization">{internship.organization}</p>
+                    <p className="internship-organization">{internship.institution}</p>
                   </div>
 
-                  <p className="internship-description">{internship.description}</p>
+                  <p className="internship-description">{internship.summary}</p>
 
                   <div className="internship-table-wrapper">
                     <table className="internship-table">
                       <tbody>
                         <tr>
-                          <th scope="row">Term</th>
-                          <td>{internship.term}</td>
+                          <th scope="row">Name of Internship</th>
+                          <td>{internship.name}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Institution</th>
+                          <td>{internship.institution}</td>
                         </tr>
                         <tr>
                           <th scope="row">Location</th>
-                          <td>{internship.location}</td>
+                          <td>{internship.location || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Format</th>
-                          <td>{internship.format}</td>
+                          <th scope="row">Summary</th>
+                          <td>{internship.summary || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Apply</th>
-                          <td>{internship.applicationWindow}</td>
+                          <th scope="row">Ideal Candidate</th>
+                          <td>{internship.idealCandidate || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Best fit</th>
-                          <td>{internship.fit}</td>
+                          <th scope="row">Clinical or Basic Science or Other</th>
+                          <td>{internship.opportunityType || 'Not provided'}</td>
                         </tr>
                         <tr>
-                          <th scope="row">Next step</th>
-                          <td>{internship.nextStep}</td>
+                          <th scope="row">Deadline</th>
+                          <td>{internship.deadline || 'Not provided'}</td>
+                        </tr>
+                        <tr>
+                          <th scope="row">Website</th>
+                          <td>
+                            {internship.website ? (
+                              <a
+                                href={getWebsiteHref(internship.website)}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {internship.website}
+                              </a>
+                            ) : (
+                              'Not provided'
+                            )}
+                          </td>
                         </tr>
                       </tbody>
                     </table>
