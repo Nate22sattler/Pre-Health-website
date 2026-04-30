@@ -13,7 +13,7 @@ import {
 } from './auth'
 import { supabase } from './supabaseClient'
 
-type View = 'home' | 'directory' | 'internships' | 'submit'
+type View = 'home' | 'directory' | 'internships' | 'submit' | 'review'
 
 type Contact = {
   id: string
@@ -48,6 +48,25 @@ type InternshipExperience = {
   note: string
   createdAt: string
   userId: string | null
+}
+
+type AlumniSubmission = {
+  id: string
+  fullName: string
+  gender: string
+  fieldOfWork: string
+  highestDegreeAndDate: string
+  currentTitle: string
+  currentEmployer: string
+  previousWork: string
+  willingToBeContacted: boolean
+  bestFormOfContact: string
+  location: string
+  consentToShare: boolean
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+  reviewedAt: string | null
+  reviewedBy: string | null
 }
 
 type ContactEditDraft = Omit<Contact, 'id'>
@@ -85,6 +104,25 @@ type InternshipExperienceRow = {
   note: string
   created_at: string
   user_id: string | null
+}
+
+type AlumniSubmissionRow = {
+  id: string
+  full_name: string
+  gender: string | null
+  field_of_work: string | null
+  highest_degree_and_date: string | null
+  current_title: string
+  current_employer: string
+  previous_work: string | null
+  willing_to_be_contacted: boolean
+  best_form_of_contact: string
+  location: string
+  consent_to_share: boolean
+  status: 'pending' | 'approved' | 'rejected'
+  created_at: string
+  reviewed_at: string | null
+  reviewed_by: string | null
 }
 
 type ExperienceDraft = {
@@ -152,6 +190,27 @@ function mapInternshipExperienceRow(row: InternshipExperienceRow): InternshipExp
   }
 }
 
+function mapAlumniSubmissionRow(row: AlumniSubmissionRow): AlumniSubmission {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    gender: row.gender ?? '',
+    fieldOfWork: row.field_of_work ?? '',
+    highestDegreeAndDate: row.highest_degree_and_date ?? '',
+    currentTitle: row.current_title,
+    currentEmployer: row.current_employer,
+    previousWork: row.previous_work ?? '',
+    willingToBeContacted: row.willing_to_be_contacted,
+    bestFormOfContact: row.best_form_of_contact,
+    location: row.location,
+    consentToShare: row.consent_to_share,
+    status: row.status,
+    createdAt: row.created_at,
+    reviewedAt: row.reviewed_at,
+    reviewedBy: row.reviewed_by,
+  }
+}
+
 function formatExperienceDate(date: string): string {
   return experienceDateFormatter.format(new Date(date))
 }
@@ -179,6 +238,7 @@ type SubmissionFormData = {
   willingToBeContacted: string
   bestFormOfContact: string
   location: string
+  consentToShare: boolean
 }
 
 const initialFormData: SubmissionFormData = {
@@ -192,6 +252,7 @@ const initialFormData: SubmissionFormData = {
   willingToBeContacted: '',
   bestFormOfContact: '',
   location: '',
+  consentToShare: false,
 }
 
 type AuthGateScreenProps = {
@@ -339,6 +400,12 @@ function App() {
   const [formData, setFormData] = useState<SubmissionFormData>(initialFormData)
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof SubmissionFormData, string>>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmittingAlumniForm, setIsSubmittingAlumniForm] = useState(false)
+  const [submissionError, setSubmissionError] = useState<string | null>(null)
+  const [alumniSubmissions, setAlumniSubmissions] = useState<AlumniSubmission[]>([])
+  const [submissionReviewLoading, setSubmissionReviewLoading] = useState(false)
+  const [submissionReviewError, setSubmissionReviewError] = useState<string | null>(null)
+  const [submissionReviewSavingById, setSubmissionReviewSavingById] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     let isActive = true
@@ -438,6 +505,7 @@ function App() {
   useEffect(() => {
     if (!session) {
       setIsAdmin(false)
+      setAlumniSubmissions([])
       return
     }
 
@@ -448,6 +516,17 @@ function App() {
 
     void checkAdmin()
   }, [session])
+
+  useEffect(() => {
+    if (!session || !isAdmin) {
+      setAlumniSubmissions([])
+      setSubmissionReviewLoading(false)
+      setSubmissionReviewError(null)
+      return
+    }
+
+    void loadAlumniSubmissions()
+  }, [session, isAdmin])
 
   useEffect(() => {
     if (authLoading) {
@@ -522,6 +601,9 @@ function App() {
   }, [authLoading, session])
 
   const fields = ['All fields', ...new Set(contacts.map((contact) => contact.fieldOfWork).filter(Boolean))]
+  const normalizedPath = window.location.pathname.replace(/\/$/, '')
+  const isPublicAlumniSubmissionRoute =
+    normalizedPath === '/alumni-submit' || window.location.hash === '#alumni-submit'
 
   const visibleContacts =
     selectedField === 'All fields'
@@ -558,6 +640,28 @@ function App() {
     if (signOutError) {
       setAuthError(signOutError.message)
     }
+  }
+
+  async function loadAlumniSubmissions() {
+    setSubmissionReviewLoading(true)
+    setSubmissionReviewError(null)
+
+    const { data, error: submissionsError } = await supabase
+      .from('alumni_submissions')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+
+    if (submissionsError) {
+      setSubmissionReviewError(submissionsError.message)
+      setSubmissionReviewLoading(false)
+      return
+    }
+
+    setAlumniSubmissions(
+      ((data as AlumniSubmissionRow[] | null) ?? []).map((row) => mapAlumniSubmissionRow(row)),
+    )
+    setSubmissionReviewLoading(false)
   }
 
   async function loadExperiencesForInternship(internshipId: string, forceRefresh = false) {
@@ -942,10 +1046,14 @@ function App() {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) {
     const { name, value } = event.target
+    const nextValue =
+      event.target instanceof HTMLInputElement && event.target.type === 'checkbox'
+        ? event.target.checked
+        : value
 
     setFormData((current) => ({
       ...current,
-      [name]: value,
+      [name]: nextValue,
     }))
 
     setFormErrors((current) => ({
@@ -970,11 +1078,15 @@ function App() {
     if (!formData.bestFormOfContact.trim()) {
       nextErrors.bestFormOfContact = 'Please choose the best form of contact.'
     }
+    if (!formData.consentToShare) {
+      nextErrors.consentToShare =
+        'Please confirm that this information may be shared with Sattler pre-health students.'
+    }
 
     return nextErrors
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     const nextErrors = validateForm()
@@ -982,12 +1094,316 @@ function App() {
     if (Object.keys(nextErrors).length > 0) {
       setFormErrors(nextErrors)
       setIsSubmitted(false)
+      setSubmissionError(null)
       return
     }
 
+    setIsSubmittingAlumniForm(true)
     setFormErrors({})
+    setSubmissionError(null)
+
+    const { error: submitError } = await supabase.from('alumni_submissions').insert({
+      full_name: formData.fullName.trim(),
+      gender: formData.gender.trim() || null,
+      field_of_work: formData.fieldOfWork || null,
+      highest_degree_and_date: formData.highestDegreeAndDate.trim() || null,
+      current_title: formData.currentTitle.trim(),
+      current_employer: formData.currentEmployer.trim(),
+      previous_work: formData.previousWork.trim() || null,
+      willing_to_be_contacted: formData.willingToBeContacted === 'true',
+      best_form_of_contact: formData.bestFormOfContact.trim(),
+      location: formData.location.trim(),
+      consent_to_share: formData.consentToShare,
+      status: 'pending',
+    })
+
+    setIsSubmittingAlumniForm(false)
+
+    if (submitError) {
+      setSubmissionError(submitError.message)
+      setIsSubmitted(false)
+      return
+    }
+
     setIsSubmitted(true)
     setFormData(initialFormData)
+
+    if (isAdmin) {
+      void loadAlumniSubmissions()
+    }
+  }
+
+  async function handleReviewSubmission(
+    submission: AlumniSubmission,
+    nextStatus: 'approved' | 'rejected',
+  ) {
+    setSubmissionReviewSavingById((current) => ({ ...current, [submission.id]: true }))
+    setSubmissionReviewError(null)
+
+    if (nextStatus === 'approved') {
+      const { data: insertedContactRow, error: insertContactError } = await supabase
+        .from('contacts')
+        .insert({
+          full_name: submission.fullName,
+          gender: submission.gender || null,
+          field_of_work: submission.fieldOfWork || null,
+          highest_degree_and_date: submission.highestDegreeAndDate || null,
+          current_title: submission.currentTitle,
+          current_employer: submission.currentEmployer,
+          previous_work: submission.previousWork || null,
+          willing_to_be_contacted: submission.willingToBeContacted,
+          best_form_of_contact: submission.bestFormOfContact,
+          location: submission.location,
+        })
+        .select('*')
+        .single()
+
+      if (insertContactError) {
+        setSubmissionReviewSavingById((current) => ({ ...current, [submission.id]: false }))
+        setSubmissionReviewError(insertContactError.message)
+        return
+      }
+
+      if (insertedContactRow) {
+        setContacts((current) =>
+          [...current, mapContactRow(insertedContactRow as ContactRow)].sort((a, b) =>
+            a.fullName.localeCompare(b.fullName),
+          ),
+        )
+      }
+    }
+
+    const { error: updateSubmissionError } = await supabase
+      .from('alumni_submissions')
+      .update({
+        status: nextStatus,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: session?.user.id ?? null,
+      })
+      .eq('id', submission.id)
+
+    setSubmissionReviewSavingById((current) => ({ ...current, [submission.id]: false }))
+
+    if (updateSubmissionError) {
+      setSubmissionReviewError(updateSubmissionError.message)
+      return
+    }
+
+    setAlumniSubmissions((current) => current.filter((item) => item.id !== submission.id))
+  }
+
+  function renderAlumniSubmissionContent(isPublicPage = false) {
+    return (
+      <>
+        <section className="submit-layout">
+          <div className="hero-copy">
+            <p className="section-label">Join the network</p>
+            <h2>Share your story so students know who they can learn from.</h2>
+            <p className="lead">
+              Alumni and health professionals can use this form to submit their information for
+              the Sattler Pre-Health Association directory. Submissions are reviewed before they
+              appear on the alumni contacts page.
+            </p>
+          </div>
+
+          <aside className="signal-card">
+            <p className="section-label">{isPublicPage ? 'Private review' : 'Shareable link'}</p>
+            <ul>
+              <li>Share your field, degree, current title, and employer.</li>
+              <li>Mention previous work that gives context to your path.</li>
+              <li>Choose whether and how students or club leaders may contact you.</li>
+            </ul>
+            {!isPublicPage ? (
+              <p className="share-link">
+                <a href="/alumni-submit" target="_blank" rel="noreferrer">
+                  Open the shareable alumni form
+                </a>
+              </p>
+            ) : null}
+          </aside>
+        </section>
+
+        <section className="submit-form-panel">
+          <div className="submit-form-header">
+            <div>
+              <p className="section-label">Submission form</p>
+              <h3>Tell us a little about yourself.</h3>
+            </div>
+            {isSubmitted ? (
+              <p className="success-message">
+                Thank you for submitting your information. A club leader will review it before it
+                appears in the alumni directory.
+              </p>
+            ) : null}
+            {submissionError ? (
+              <p className="auth-feedback auth-feedback-error">{submissionError}</p>
+            ) : null}
+          </div>
+
+          <form className="submit-form" onSubmit={handleSubmit} noValidate>
+            <label className="form-field">
+              <span>Full Name</span>
+              <input
+                name="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={handleInputChange}
+              />
+              {formErrors.fullName ? <small>{formErrors.fullName}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Gender</span>
+              <input
+                name="gender"
+                type="text"
+                value={formData.gender}
+                onChange={handleInputChange}
+              />
+            </label>
+
+            <label className="form-field">
+              <span>Field of Work</span>
+              <select
+                name="fieldOfWork"
+                value={formData.fieldOfWork}
+                onChange={handleInputChange}
+              >
+                <option value="">Select an option</option>
+                {contactFieldOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {formErrors.fieldOfWork ? <small>{formErrors.fieldOfWork}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Highest Degree and Date obtained</span>
+              <input
+                name="highestDegreeAndDate"
+                type="text"
+                value={formData.highestDegreeAndDate}
+                onChange={handleInputChange}
+              />
+            </label>
+
+            <label className="form-field">
+              <span>Current Title</span>
+              <input
+                name="currentTitle"
+                type="text"
+                value={formData.currentTitle}
+                onChange={handleInputChange}
+              />
+              {formErrors.currentTitle ? <small>{formErrors.currentTitle}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Current Employer</span>
+              <input
+                name="currentEmployer"
+                type="text"
+                value={formData.currentEmployer}
+                onChange={handleInputChange}
+              />
+              {formErrors.currentEmployer ? <small>{formErrors.currentEmployer}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Any different previous work</span>
+              <textarea
+                name="previousWork"
+                rows={4}
+                value={formData.previousWork}
+                onChange={handleInputChange}
+              />
+            </label>
+
+            <label className="form-field">
+              <span>Willing to Be Contacted?</span>
+              <select
+                name="willingToBeContacted"
+                value={formData.willingToBeContacted}
+                onChange={handleInputChange}
+              >
+                <option value="">Select one</option>
+                <option value="true">Yes</option>
+                <option value="false">No</option>
+              </select>
+              {formErrors.willingToBeContacted ? (
+                <small>{formErrors.willingToBeContacted}</small>
+              ) : null}
+            </label>
+
+            <label className="form-field">
+              <span>Best form of contact?</span>
+              <select
+                name="bestFormOfContact"
+                value={formData.bestFormOfContact}
+                onChange={handleInputChange}
+              >
+                <option value="">Select one</option>
+                <option value="Phone">Phone</option>
+                <option value="Email">Email</option>
+              </select>
+              {formErrors.bestFormOfContact ? <small>{formErrors.bestFormOfContact}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Location</span>
+              <input
+                name="location"
+                type="text"
+                value={formData.location}
+                onChange={handleInputChange}
+              />
+              {formErrors.location ? <small>{formErrors.location}</small> : null}
+            </label>
+
+            <label className="form-field form-field-wide consent-field">
+              <input
+                name="consentToShare"
+                type="checkbox"
+                checked={formData.consentToShare}
+                onChange={handleInputChange}
+              />
+              <span>
+                I agree that this information may be shared with Sattler pre-health students after
+                review by a club leader.
+              </span>
+              {formErrors.consentToShare ? <small>{formErrors.consentToShare}</small> : null}
+            </label>
+
+            <div className="form-actions form-field-wide">
+              <button className="primary-button" type="submit" disabled={isSubmittingAlumniForm}>
+                {isSubmittingAlumniForm ? 'Submitting...' : 'Submit information'}
+              </button>
+            </div>
+          </form>
+        </section>
+      </>
+    )
+  }
+
+  if (isPublicAlumniSubmissionRoute) {
+    return (
+      <div className="site-shell">
+        <header className="topbar public-topbar">
+          <div className="topbar-brand">
+            <img
+              className="topbar-logo"
+              src={preHealthLogo}
+              alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
+            />
+            <p className="eyebrow">Sattler College Pre-Health Club</p>
+          </div>
+        </header>
+
+        <main className="page">{renderAlumniSubmissionContent(true)}</main>
+      </div>
+    )
   }
 
   if (authLoading) {
@@ -1029,6 +1445,14 @@ function App() {
             >
               Internships
             </button>
+            {isAdmin ? (
+              <button
+                className={view === 'review' ? 'nav-link active' : 'nav-link'}
+                onClick={() => setView('review')}
+              >
+                Review submissions
+              </button>
+            ) : null}
           </nav>
 
           <div className="session-tools">
@@ -1380,167 +1804,127 @@ function App() {
           </section>
         </main>
       ) : view === 'submit' ? (
+        <main className="page">{renderAlumniSubmissionContent()}</main>
+      ) : view === 'review' ? (
         <main className="page">
-          <section className="submit-layout">
-            <div className="hero-copy">
-              <p className="section-label">Join the network</p>
-              <h2>Share your story so students know who they can learn from.</h2>
+          <section className="directory-header">
+            <div>
+              <p className="section-label">Admin review</p>
+              <h2>Review alumni submissions before they enter the directory.</h2>
               <p className="lead">
-                Alumni and health professionals can use this form to submit their information for
-                the Sattler Pre-Health Association directory. We want students to find mentors,
-                ask thoughtful questions, and better understand the paths in front of them.
+                Approving a submission creates a new alumni contact. Rejecting it keeps it out of
+                the contacts page.
               </p>
             </div>
 
-            <aside className="signal-card">
-              <p className="section-label">What to include</p>
-              <ul>
-                <li>Share your field, degree, current title, and employer.</li>
-                <li>Mention previous work that gives context to your path.</li>
-                <li>Choose whether and how students or club leaders may contact you.</li>
-              </ul>
-            </aside>
+            <button
+              type="button"
+              className="primary-button"
+              disabled={submissionReviewLoading}
+              onClick={() => {
+                void loadAlumniSubmissions()
+              }}
+            >
+              {submissionReviewLoading ? 'Refreshing...' : 'Refresh'}
+            </button>
           </section>
 
-          <section className="submit-form-panel">
-            <div className="submit-form-header">
-              <div>
-                <p className="section-label">Submission form</p>
-                <h3>Tell us a little about yourself.</h3>
-              </div>
-              {isSubmitted ? (
-                <p className="success-message">
-                  Thank you for submitting your information. We&apos;ll use it to help connect
-                  students with mentors and professionals they can learn from.
-                </p>
-              ) : null}
-            </div>
+          <section className="review-list">
+            {!isAdmin ? (
+              <article className="content-card status-card">
+                <p>You need admin access to review alumni submissions.</p>
+              </article>
+            ) : submissionReviewError ? (
+              <article className="content-card status-card">
+                <p>{submissionReviewError}</p>
+              </article>
+            ) : submissionReviewLoading ? (
+              <article className="content-card status-card">
+                <p>Loading pending submissions...</p>
+              </article>
+            ) : alumniSubmissions.length === 0 ? (
+              <article className="content-card status-card">
+                <p>No pending alumni submissions.</p>
+              </article>
+            ) : (
+              alumniSubmissions.map((submission) => (
+                <article key={submission.id} className="review-card">
+                  <div className="contact-header">
+                    <div>
+                      <p className="contact-field">
+                        {submission.fieldOfWork || 'Field not provided'}
+                      </p>
+                      <h3>{submission.fullName}</h3>
+                    </div>
+                    <p className="review-date">
+                      Submitted {formatExperienceDate(submission.createdAt)}
+                    </p>
+                  </div>
 
-            <form className="submit-form" onSubmit={handleSubmit} noValidate>
-              <label className="form-field">
-                <span>Full Name</span>
-                <input
-                  name="fullName"
-                  type="text"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                />
-                {formErrors.fullName ? <small>{formErrors.fullName}</small> : null}
-              </label>
+                  <dl className="contact-meta">
+                    <div>
+                      <dt>Gender</dt>
+                      <dd>{submission.gender || 'Not provided'}</dd>
+                    </div>
+                    <div>
+                      <dt>Field of Work</dt>
+                      <dd>{submission.fieldOfWork || 'Not provided'}</dd>
+                    </div>
+                    <div>
+                      <dt>Highest Degree and Date obtained</dt>
+                      <dd>{submission.highestDegreeAndDate || 'Not provided'}</dd>
+                    </div>
+                    <div>
+                      <dt>Current Title</dt>
+                      <dd>{submission.currentTitle}</dd>
+                    </div>
+                    <div>
+                      <dt>Current Employer</dt>
+                      <dd>{submission.currentEmployer}</dd>
+                    </div>
+                    <div>
+                      <dt>Willing to Be Contacted?</dt>
+                      <dd>{formatYesNo(submission.willingToBeContacted)}</dd>
+                    </div>
+                    <div>
+                      <dt>Best form of contact?</dt>
+                      <dd>{submission.bestFormOfContact}</dd>
+                    </div>
+                    <div>
+                      <dt>Location</dt>
+                      <dd>{submission.location}</dd>
+                    </div>
+                  </dl>
 
-              <label className="form-field">
-                <span>Gender</span>
-                <input
-                  name="gender"
-                  type="text"
-                  value={formData.gender}
-                  onChange={handleInputChange}
-                />
-              </label>
+                  <p className="contact-notes">
+                    {submission.previousWork || 'No previous work listed.'}
+                  </p>
 
-              <label className="form-field">
-                <span>Field of Work</span>
-                <select
-                  name="fieldOfWork"
-                  value={formData.fieldOfWork}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select an option</option>
-                  {contactFieldOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                {formErrors.fieldOfWork ? <small>{formErrors.fieldOfWork}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Highest Degree and Date obtained</span>
-                <input
-                  name="highestDegreeAndDate"
-                  type="text"
-                  value={formData.highestDegreeAndDate}
-                  onChange={handleInputChange}
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Current Title</span>
-                <input
-                  name="currentTitle"
-                  type="text"
-                  value={formData.currentTitle}
-                  onChange={handleInputChange}
-                />
-                {formErrors.currentTitle ? <small>{formErrors.currentTitle}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Current Employer</span>
-                <input
-                  name="currentEmployer"
-                  type="text"
-                  value={formData.currentEmployer}
-                  onChange={handleInputChange}
-                />
-                {formErrors.currentEmployer ? <small>{formErrors.currentEmployer}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Any different previous work</span>
-                <textarea
-                  name="previousWork"
-                  rows={4}
-                  value={formData.previousWork}
-                  onChange={handleInputChange}
-                />
-              </label>
-
-              <label className="form-field">
-                <span>Willing to Be Contacted?</span>
-                <select
-                  name="willingToBeContacted"
-                  value={formData.willingToBeContacted}
-                  onChange={handleInputChange}
-                >
-                  <option value="">Select one</option>
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
-                </select>
-                {formErrors.willingToBeContacted ? (
-                  <small>{formErrors.willingToBeContacted}</small>
-                ) : null}
-              </label>
-
-              <label className="form-field">
-                <span>Best form of contact?</span>
-                <input
-                  name="bestFormOfContact"
-                  type="text"
-                  value={formData.bestFormOfContact}
-                  onChange={handleInputChange}
-                />
-                {formErrors.bestFormOfContact ? <small>{formErrors.bestFormOfContact}</small> : null}
-              </label>
-
-              <label className="form-field">
-                <span>Location</span>
-                <input
-                  name="location"
-                  type="text"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                />
-                {formErrors.location ? <small>{formErrors.location}</small> : null}
-              </label>
-
-              <div className="form-actions form-field-wide">
-                <button className="primary-button" type="submit">
-                  Submit information
-                </button>
-              </div>
-            </form>
+                  <div className="contact-admin-actions">
+                    <button
+                      type="button"
+                      className="primary-button"
+                      disabled={submissionReviewSavingById[submission.id]}
+                      onClick={() => {
+                        void handleReviewSubmission(submission, 'approved')
+                      }}
+                    >
+                      {submissionReviewSavingById[submission.id] ? 'Saving...' : 'Approve'}
+                    </button>
+                    <button
+                      type="button"
+                      className="experience-delete-button"
+                      disabled={submissionReviewSavingById[submission.id]}
+                      onClick={() => {
+                        void handleReviewSubmission(submission, 'rejected')
+                      }}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
           </section>
         </main>
       ) : (
