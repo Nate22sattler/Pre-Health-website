@@ -23,7 +23,8 @@ type Contact = {
   fullName: string
   gender: string
   fieldOfWork: string
-  highestDegreeAndDate: string
+  highestDegree: string
+  degreeObtainedDate: string
   currentTitle: string
   currentEmployer: string
   previousWork: string
@@ -58,7 +59,8 @@ type AlumniSubmission = {
   fullName: string
   gender: string
   fieldOfWork: string
-  highestDegreeAndDate: string
+  highestDegree: string
+  degreeObtainedDate: string
   currentTitle: string
   currentEmployer: string
   previousWork: string
@@ -79,6 +81,8 @@ type ContactRow = {
   full_name: string
   gender: string | null
   field_of_work: string | null
+  highest_degree: string | null
+  degree_obtained_date: string | null
   highest_degree_and_date: string | null
   current_title: string
   current_employer: string
@@ -114,6 +118,8 @@ type AlumniSubmissionRow = {
   full_name: string
   gender: string | null
   field_of_work: string | null
+  highest_degree: string | null
+  degree_obtained_date: string | null
   highest_degree_and_date: string | null
   current_title: string
   current_employer: string
@@ -144,6 +150,7 @@ const experienceDateFormatter = new Intl.DateTimeFormat('en-US', {
 const idealCandidateOptions = ['pre-MD', 'pre-PhD', 'other']
 const opportunityTypeOptions = ['Clinical', 'Basic Science', 'Other']
 const contactFieldOptions = ['PT', 'MD', 'DDS', 'OT', 'PH', 'BSN', 'PA', 'Research']
+const highestDegreeOptions = ['Associate', "Bachelor's", "Master's", 'Doctorate']
 
 function createExperienceDraft(): ExperienceDraft {
   return {
@@ -158,7 +165,8 @@ function mapContactRow(row: ContactRow): Contact {
     fullName: row.full_name,
     gender: row.gender ?? '',
     fieldOfWork: row.field_of_work ?? '',
-    highestDegreeAndDate: row.highest_degree_and_date ?? '',
+    highestDegree: row.highest_degree ?? '',
+    degreeObtainedDate: row.degree_obtained_date ?? '',
     currentTitle: row.current_title,
     currentEmployer: row.current_employer,
     previousWork: row.previous_work ?? '',
@@ -199,7 +207,8 @@ function mapAlumniSubmissionRow(row: AlumniSubmissionRow): AlumniSubmission {
     fullName: row.full_name,
     gender: row.gender ?? '',
     fieldOfWork: row.field_of_work ?? '',
-    highestDegreeAndDate: row.highest_degree_and_date ?? '',
+    highestDegree: row.highest_degree ?? '',
+    degreeObtainedDate: row.degree_obtained_date ?? '',
     currentTitle: row.current_title,
     currentEmployer: row.current_employer,
     previousWork: row.previous_work ?? '',
@@ -218,6 +227,20 @@ function formatExperienceDate(date: string): string {
   return experienceDateFormatter.format(new Date(date))
 }
 
+function formatDateObtained(date: string): string {
+  if (!date) {
+    return 'Not provided'
+  }
+
+  const [year, month, day] = date.slice(0, 10).split('-')
+
+  if (!year || !month || !day) {
+    return 'Not provided'
+  }
+
+  return `${month}/${day}/${year}`
+}
+
 function getWebsiteHref(website: string): string {
   return /^https?:\/\//i.test(website) ? website : `https://${website}`
 }
@@ -234,7 +257,8 @@ type SubmissionFormData = {
   fullName: string
   gender: string
   fieldOfWork: string
-  highestDegreeAndDate: string
+  highestDegree: string
+  degreeObtainedDate: string
   currentTitle: string
   currentEmployer: string
   previousWork: string
@@ -248,7 +272,8 @@ const initialFormData: SubmissionFormData = {
   fullName: '',
   gender: '',
   fieldOfWork: '',
-  highestDegreeAndDate: '',
+  highestDegree: '',
+  degreeObtainedDate: '',
   currentTitle: '',
   currentEmployer: '',
   previousWork: '',
@@ -868,7 +893,8 @@ function App() {
       fullName: contact.fullName,
       gender: contact.gender,
       fieldOfWork: contact.fieldOfWork,
-      highestDegreeAndDate: contact.highestDegreeAndDate,
+      highestDegree: contact.highestDegree,
+      degreeObtainedDate: contact.degreeObtainedDate,
       currentTitle: contact.currentTitle,
       currentEmployer: contact.currentEmployer,
       previousWork: contact.previousWork,
@@ -900,7 +926,8 @@ function App() {
         full_name: contactEditDraft.fullName,
         gender: contactEditDraft.gender || null,
         field_of_work: contactEditDraft.fieldOfWork || null,
-        highest_degree_and_date: contactEditDraft.highestDegreeAndDate || null,
+        highest_degree: contactEditDraft.highestDegree || null,
+        degree_obtained_date: contactEditDraft.degreeObtainedDate || null,
         current_title: contactEditDraft.currentTitle,
         current_employer: contactEditDraft.currentEmployer,
         previous_work: contactEditDraft.previousWork || null,
@@ -1083,6 +1110,12 @@ function App() {
 
     if (!formData.fullName.trim()) nextErrors.fullName = 'Please enter your name.'
     if (!formData.fieldOfWork.trim()) nextErrors.fieldOfWork = 'Please select your field of work.'
+    if (!formData.highestDegree.trim()) {
+      nextErrors.highestDegree = 'Please select your highest degree.'
+    }
+    if (!formData.degreeObtainedDate.trim()) {
+      nextErrors.degreeObtainedDate = 'Please enter your graduation date.'
+    }
     if (!formData.currentTitle.trim()) nextErrors.currentTitle = 'Please enter your current title.'
     if (!formData.currentEmployer.trim()) {
       nextErrors.currentEmployer = 'Please enter your current employer.'
@@ -1122,7 +1155,8 @@ function App() {
       full_name: formData.fullName.trim(),
       gender: formData.gender.trim() || null,
       field_of_work: formData.fieldOfWork || null,
-      highest_degree_and_date: formData.highestDegreeAndDate.trim() || null,
+      highest_degree: formData.highestDegree || null,
+      degree_obtained_date: formData.degreeObtainedDate || null,
       current_title: formData.currentTitle.trim(),
       current_employer: formData.currentEmployer.trim(),
       previous_work: formData.previousWork.trim() || null,
@@ -1163,7 +1197,8 @@ function App() {
           full_name: submission.fullName,
           gender: submission.gender || null,
           field_of_work: submission.fieldOfWork || null,
-          highest_degree_and_date: submission.highestDegreeAndDate || null,
+          highest_degree: submission.highestDegree || null,
+          degree_obtained_date: submission.degreeObtainedDate || null,
           current_title: submission.currentTitle,
           current_employer: submission.currentEmployer,
           previous_work: submission.previousWork || null,
@@ -1296,13 +1331,31 @@ function App() {
             </label>
 
             <label className="form-field">
-              <span>Highest Degree and Date obtained</span>
+              <span>Highest Degree Obtained</span>
+              <select
+                name="highestDegree"
+                value={formData.highestDegree}
+                onChange={handleInputChange}
+              >
+                <option value="">Select an option</option>
+                {highestDegreeOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+              {formErrors.highestDegree ? <small>{formErrors.highestDegree}</small> : null}
+            </label>
+
+            <label className="form-field">
+              <span>Graduation Date</span>
               <input
-                name="highestDegreeAndDate"
-                type="text"
-                value={formData.highestDegreeAndDate}
+                name="degreeObtainedDate"
+                type="date"
+                value={formData.degreeObtainedDate}
                 onChange={handleInputChange}
               />
+              {formErrors.degreeObtainedDate ? <small>{formErrors.degreeObtainedDate}</small> : null}
             </label>
 
             <label className="form-field">
@@ -1649,12 +1702,28 @@ function App() {
                         </select>
                       </label>
                       <label className="experience-form-field">
-                        <span>Highest Degree and Date obtained</span>
-                        <input
-                          type="text"
-                          value={contactEditDraft.highestDegreeAndDate}
+                        <span>Highest Degree Obtained</span>
+                        <select
+                          value={contactEditDraft.highestDegree}
                           onChange={(e) =>
-                            handleContactEditDraftChange('highestDegreeAndDate', e.target.value)
+                            handleContactEditDraftChange('highestDegree', e.target.value)
+                          }
+                        >
+                          <option value="">Select an option</option>
+                          {highestDegreeOptions.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="experience-form-field">
+                        <span>Graduation Date</span>
+                        <input
+                          type="date"
+                          value={contactEditDraft.degreeObtainedDate}
+                          onChange={(e) =>
+                            handleContactEditDraftChange('degreeObtainedDate', e.target.value)
                           }
                         />
                       </label>
@@ -1764,8 +1833,12 @@ function App() {
                           <dd>{contact.fieldOfWork || 'Not provided'}</dd>
                         </div>
                         <div>
-                          <dt>Highest Degree and Date obtained</dt>
-                          <dd>{contact.highestDegreeAndDate || 'Not provided'}</dd>
+                          <dt>Highest Degree Obtained</dt>
+                          <dd>{contact.highestDegree || 'Not provided'}</dd>
+                        </div>
+                        <div>
+                          <dt>Graduation Date</dt>
+                          <dd>{formatDateObtained(contact.degreeObtainedDate)}</dd>
                         </div>
                         <div>
                           <dt>Current Title</dt>
@@ -1887,8 +1960,12 @@ function App() {
                       <dd>{submission.fieldOfWork || 'Not provided'}</dd>
                     </div>
                     <div>
-                      <dt>Highest Degree and Date obtained</dt>
-                      <dd>{submission.highestDegreeAndDate || 'Not provided'}</dd>
+                      <dt>Highest Degree Obtained</dt>
+                      <dd>{submission.highestDegree || 'Not provided'}</dd>
+                    </div>
+                    <div>
+                      <dt>Graduation Date</dt>
+                      <dd>{formatDateObtained(submission.degreeObtainedDate)}</dd>
                     </div>
                     <div>
                       <dt>Current Title</dt>
