@@ -1,6 +1,6 @@
 // Is the thing that displays the different elements of the web app; is rendered by main.tsx.
 
-import { useRef, useState, useEffect, type ChangeEvent, type FormEvent } from 'react'
+import { useRef, useState, useEffect, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import preHealthLogo from './assets/pre-health-logo.png'
 import homeHeroImage from './assets/v3.jpeg'
@@ -75,6 +75,18 @@ type AlumniSubmission = {
 }
 
 type ContactEditDraft = Omit<Contact, 'id'>
+type ContactProfile = Pick<
+  Contact,
+  | 'gender'
+  | 'fieldOfWork'
+  | 'highestDegree'
+  | 'degreeObtainedDate'
+  | 'currentTitle'
+  | 'currentEmployer'
+  | 'willingToBeContacted'
+  | 'bestFormOfContact'
+  | 'location'
+>
 
 type ContactRow = {
   id: string
@@ -253,6 +265,78 @@ function formatYesNo(value: boolean | null): string {
   return value ? 'Yes' : 'No'
 }
 
+function renderOptions(options: string[]) {
+  return options.map((option) => (
+    <option key={option} value={option}>
+      {option}
+    </option>
+  ))
+}
+
+function renderContactMeta(profile: ContactProfile) {
+  const rows = [
+    ['Gender', profile.gender || 'Not provided'],
+    ['Field of Work', profile.fieldOfWork || 'Not provided'],
+    ['Highest Degree Obtained', profile.highestDegree || 'Not provided'],
+    ['Graduation Date', formatDateObtained(profile.degreeObtainedDate)],
+    ['Current Title', profile.currentTitle],
+    ['Current Employer', profile.currentEmployer],
+    ['Willing to Be Contacted?', formatYesNo(profile.willingToBeContacted)],
+    ['Best form of contact?', profile.bestFormOfContact],
+    ['Location', profile.location],
+  ]
+
+  return (
+    <dl className="contact-meta">
+      {rows.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function renderInternshipTable(internship: Internship) {
+  const rows = [
+    ['Name of Internship', internship.name],
+    ['Institution', internship.institution],
+    ['Location', internship.location || 'Not provided'],
+    ['Summary', internship.summary || 'Not provided'],
+    ['Ideal Candidate', internship.idealCandidate || 'Not provided'],
+    ['Clinical or Basic Science or Other', internship.opportunityType || 'Not provided'],
+    ['Deadline', internship.deadline || 'Not provided'],
+  ]
+
+  return (
+    <div className="internship-table-wrapper">
+      <table className="internship-table">
+        <tbody>
+          {rows.map(([label, value]) => (
+            <tr key={label}>
+              <th scope="row">{label}</th>
+              <td>{value}</td>
+            </tr>
+          ))}
+          <tr>
+            <th scope="row">Website</th>
+            <td>
+              {internship.website ? (
+                <a href={getWebsiteHref(internship.website)} target="_blank" rel="noreferrer">
+                  {internship.website}
+                </a>
+              ) : (
+                'Not provided'
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 type SubmissionFormData = {
   fullName: string
   gender: string
@@ -289,20 +373,18 @@ type AuthGateScreenProps = {
   onSignIn: () => void
 }
 
-function AuthLoadingScreen() {
+type AuthShellProps = {
+  children: ReactNode
+  asideTitle: string
+  asideText: string
+}
+
+function AuthShell({ children, asideTitle, asideText }: AuthShellProps) {
   return (
     <div className="site-shell">
       <main className="page auth-screen">
         <section className="auth-panel">
-          <div className="hero-copy auth-copy">
-            <p className="section-label">Private community access</p>
-            <h2>Checking your Sattler access.</h2>
-            <p className="lead">
-              We&apos;re verifying your session so the site can stay private to institutional
-              members.
-            </p>
-            <p className="auth-loading-state">Loading secure access...</p>
-          </div>
+          <div className="hero-copy auth-copy">{children}</div>
 
           <aside className="brand-panel auth-aside">
             <div className="brand-panel-frame">
@@ -313,11 +395,8 @@ function AuthLoadingScreen() {
               />
             </div>
             <div className="brand-panel-copy">
-              <h3>Trusted access only</h3>
-              <p>
-                This space is reserved for the Sattler pre-health community so students can share
-                resources and reflections with confidence.
-              </p>
+              <h3>{asideTitle}</h3>
+              <p>{asideText}</p>
             </div>
           </aside>
         </section>
@@ -326,56 +405,52 @@ function AuthLoadingScreen() {
   )
 }
 
+function AuthLoadingScreen() {
+  return (
+    <AuthShell
+      asideTitle="Trusted access only"
+      asideText="This space is reserved for the Sattler pre-health community so students can share resources and reflections with confidence."
+    >
+      <p className="section-label">Private community access</p>
+      <h2>Checking your Sattler access.</h2>
+      <p className="lead">
+        We&apos;re verifying your session so the site can stay private to institutional members.
+      </p>
+      <p className="auth-loading-state">Loading secure access...</p>
+    </AuthShell>
+  )
+}
+
 function AuthGateScreen({ error, isSigningIn, onSignIn }: AuthGateScreenProps) {
   return (
-    <div className="site-shell">
-      <main className="page auth-screen">
-        <section className="auth-panel">
-          <div className="hero-copy auth-copy">
-            <p className="section-label">Private community access</p>
-            <h2>Sign in with your Sattler Google account.</h2>
-            <p className="lead">
-              The directory, internship guide, and shared reflections are only available to
-              approved institutional users.
-            </p>
+    <AuthShell
+      asideTitle="Why the gate?"
+      asideText="We're protecting contact details and student reflections by limiting access to trusted institutional accounts."
+    >
+      <p className="section-label">Private community access</p>
+      <h2>Sign in with your Sattler Google account.</h2>
+      <p className="lead">
+        The directory, internship guide, and shared reflections are only available to approved
+        institutional users.
+      </p>
 
-            <div className="auth-actions">
-              <button
-                type="button"
-                className="primary-button"
-                onClick={onSignIn}
-                disabled={isSigningIn}
-              >
-                {isSigningIn ? 'Redirecting to Google...' : 'Continue with Google'}
-              </button>
-              <p className="auth-note">
-                Only Google accounts with an <strong>{ALLOWED_EMAIL_DOMAIN_LABEL}</strong> email
-                address can access this site.
-              </p>
-            </div>
+      <div className="auth-actions">
+        <button
+          type="button"
+          className="primary-button"
+          onClick={onSignIn}
+          disabled={isSigningIn}
+        >
+          {isSigningIn ? 'Redirecting to Google...' : 'Continue with Google'}
+        </button>
+        <p className="auth-note">
+          Only Google accounts with an <strong>{ALLOWED_EMAIL_DOMAIN_LABEL}</strong> email address
+          can access this site.
+        </p>
+      </div>
 
-            {error ? <p className="auth-feedback auth-feedback-error">{error}</p> : null}
-          </div>
-
-          <aside className="brand-panel auth-aside">
-            <div className="brand-panel-frame">
-              <img
-                className="brand-logo"
-                src={preHealthLogo}
-                alt="Sattler Pre-Health Association logo with the motto Connect, Equip, Serve."
-              />
-            </div>
-            <div className="brand-panel-copy">
-              <h3>Why the gate?</h3>
-              <p>
-                We&apos;re protecting contact details and student reflections by limiting access to
-                trusted institutional accounts.
-              </p>
-            </div>
-          </aside>
-        </section>
-      </main>
-    </div>
+      {error ? <p className="auth-feedback auth-feedback-error">{error}</p> : null}
+    </AuthShell>
   )
 }
 
@@ -384,7 +459,8 @@ function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [isSigningIn, setIsSigningIn] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
+  const [authError, setAuthError] = useState<string | null>(() => readAuthCallbackError())
+  const initialAuthError = useRef(authError)
   const [selectedField, setSelectedField] = useState('All fields')
   const [contacts, setContacts] = useState<Contact[]>([])
   const [internships, setInternships] = useState<Internship[]>([])
@@ -435,13 +511,59 @@ function App() {
   const [submissionReviewError, setSubmissionReviewError] = useState<string | null>(null)
   const [submissionReviewSavingById, setSubmissionReviewSavingById] = useState<Record<string, boolean>>({})
 
+  async function loadAlumniSubmissions() {
+    setSubmissionReviewLoading(true)
+    setSubmissionReviewError(null)
+
+    const { data, error: submissionsError } = await supabase
+      .from('alumni_submissions')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+
+    if (submissionsError) {
+      setSubmissionReviewError(submissionsError.message)
+      setSubmissionReviewLoading(false)
+      return
+    }
+
+    setAlumniSubmissions(
+      ((data as AlumniSubmissionRow[] | null) ?? []).map(mapAlumniSubmissionRow),
+    )
+    setSubmissionReviewLoading(false)
+  }
+
+  function resetSignedOutState() {
+    setView('home')
+    setSelectedField('All fields')
+    setContacts([])
+    setInternships([])
+    setLoading(false)
+    setError(null)
+    setExperiencePanelModeByInternshipId({})
+    setExperiencesByInternshipId({})
+    setExperienceLoadingByInternshipId({})
+    setExperienceErrorByInternshipId({})
+    setExperienceDraftsByInternshipId({})
+    setExperienceFormErrorByInternshipId({})
+    setExperienceSubmittingByInternshipId({})
+    setExperienceDeletingById({})
+    setIsAdmin(false)
+    setAlumniSubmissions([])
+    setSubmissionReviewLoading(false)
+    setSubmissionReviewError(null)
+    setEditingInternshipId(null)
+    setInternshipEditDraft(null)
+    setInternshipSavingById({})
+    setInternshipDeletingById({})
+    setEditingExperienceId(null)
+    setExperienceEditDraft('')
+    setExperienceSavingById({})
+  }
+
   useEffect(() => {
     let isActive = true
-    const callbackError = readAuthCallbackError()
-
-    if (callbackError) {
-      setAuthError(callbackError)
-    }
+    const callbackError = initialAuthError.current
 
     async function syncApprovedSession(
       nextSession: Session | null,
@@ -455,6 +577,7 @@ function App() {
         setSession(null)
         setAuthLoading(false)
         setIsSigningIn(false)
+        resetSignedOutState()
 
         if (!preserveExistingErrorOnEmptySession) {
           setAuthError(null)
@@ -510,6 +633,7 @@ function App() {
         setAuthError(sessionError.message)
         setAuthLoading(false)
         setIsSigningIn(false)
+        resetSignedOutState()
         return
       }
 
@@ -532,14 +656,19 @@ function App() {
 
   useEffect(() => {
     if (!session) {
-      setIsAdmin(false)
-      setAlumniSubmissions([])
       return
     }
 
     async function checkAdmin() {
       const { data } = await supabase.rpc('is_admin')
-      setIsAdmin(data === true)
+      const nextIsAdmin = data === true
+      setIsAdmin(nextIsAdmin)
+
+      if (!nextIsAdmin) {
+        setAlumniSubmissions([])
+        setSubmissionReviewLoading(false)
+        setSubmissionReviewError(null)
+      }
     }
 
     void checkAdmin()
@@ -547,13 +676,10 @@ function App() {
 
   useEffect(() => {
     if (!session || !isAdmin) {
-      setAlumniSubmissions([])
-      setSubmissionReviewLoading(false)
-      setSubmissionReviewError(null)
       return
     }
 
-    void loadAlumniSubmissions()
+    void Promise.resolve().then(loadAlumniSubmissions)
   }, [session, isAdmin])
 
   useEffect(() => {
@@ -561,30 +687,7 @@ function App() {
       return
     }
 
-    if (!session) {
-      setView('home')
-      setSelectedField('All fields')
-      setContacts([])
-      setInternships([])
-      setLoading(false)
-      setError(null)
-      setExperiencePanelModeByInternshipId({})
-      setExperiencesByInternshipId({})
-      setExperienceLoadingByInternshipId({})
-      setExperienceErrorByInternshipId({})
-      setExperienceDraftsByInternshipId({})
-      setExperienceFormErrorByInternshipId({})
-      setExperienceSubmittingByInternshipId({})
-      setExperienceDeletingById({})
-      setEditingInternshipId(null)
-      setInternshipEditDraft(null)
-      setInternshipSavingById({})
-      setInternshipDeletingById({})
-      setEditingExperienceId(null)
-      setExperienceEditDraft('')
-      setExperienceSavingById({})
-      return
-    }
+    if (!session) return
 
     let isActive = true
 
@@ -612,12 +715,8 @@ function App() {
         return
       }
 
-      setContacts(((contactRows as ContactRow[] | null) ?? []).map((row: ContactRow) => mapContactRow(row)))
-      setInternships(
-        ((internshipRows as InternshipRow[] | null) ?? []).map((row: InternshipRow) =>
-          mapInternshipRow(row),
-        ),
-      )
+      setContacts(((contactRows as ContactRow[] | null) ?? []).map(mapContactRow))
+      setInternships(((internshipRows as InternshipRow[] | null) ?? []).map(mapInternshipRow))
       setLoading(false)
     }
 
@@ -683,28 +782,6 @@ function App() {
     }
   }
 
-  async function loadAlumniSubmissions() {
-    setSubmissionReviewLoading(true)
-    setSubmissionReviewError(null)
-
-    const { data, error: submissionsError } = await supabase
-      .from('alumni_submissions')
-      .select('*')
-      .eq('status', 'pending')
-      .order('created_at', { ascending: true })
-
-    if (submissionsError) {
-      setSubmissionReviewError(submissionsError.message)
-      setSubmissionReviewLoading(false)
-      return
-    }
-
-    setAlumniSubmissions(
-      ((data as AlumniSubmissionRow[] | null) ?? []).map((row) => mapAlumniSubmissionRow(row)),
-    )
-    setSubmissionReviewLoading(false)
-  }
-
   async function loadExperiencesForInternship(internshipId: string, forceRefresh = false) {
     if (!forceRefresh && internshipId in experiencesByInternshipId) {
       return
@@ -739,8 +816,8 @@ function App() {
 
     setExperiencesByInternshipId((currentState) => ({
       ...currentState,
-      [internshipId]: ((data as InternshipExperienceRow[] | null) ?? []).map((row) =>
-        mapInternshipExperienceRow(row),
+      [internshipId]: ((data as InternshipExperienceRow[] | null) ?? []).map(
+        mapInternshipExperienceRow,
       ),
     }))
     setExperienceLoadingByInternshipId((currentState) => ({
@@ -887,21 +964,9 @@ function App() {
     }))
   }
 
-  function handleContactEditStart(contact: Contact) {
-    setEditingContactId(contact.id)
-    setContactEditDraft({
-      fullName: contact.fullName,
-      gender: contact.gender,
-      fieldOfWork: contact.fieldOfWork,
-      highestDegree: contact.highestDegree,
-      degreeObtainedDate: contact.degreeObtainedDate,
-      currentTitle: contact.currentTitle,
-      currentEmployer: contact.currentEmployer,
-      previousWork: contact.previousWork,
-      willingToBeContacted: contact.willingToBeContacted,
-      bestFormOfContact: contact.bestFormOfContact,
-      location: contact.location,
-    })
+  function handleContactEditStart({ id, ...draft }: Contact) {
+    setEditingContactId(id)
+    setContactEditDraft(draft)
   }
 
   function handleContactEditCancel() {
@@ -971,18 +1036,9 @@ function App() {
     setContacts((current) => current.filter((c) => c.id !== contactId))
   }
 
-  function handleInternshipEditStart(internship: Internship) {
-    setEditingInternshipId(internship.id)
-    setInternshipEditDraft({
-      name: internship.name,
-      institution: internship.institution,
-      location: internship.location,
-      summary: internship.summary,
-      idealCandidate: internship.idealCandidate,
-      opportunityType: internship.opportunityType,
-      deadline: internship.deadline,
-      website: internship.website,
-    })
+  function handleInternshipEditStart({ id, ...draft }: Internship) {
+    setEditingInternshipId(id)
+    setInternshipEditDraft(draft)
   }
 
   function handleInternshipEditCancel() {
@@ -1321,11 +1377,7 @@ function App() {
                 onChange={handleInputChange}
               >
                 <option value="">Select an option</option>
-                {contactFieldOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
+                {renderOptions(contactFieldOptions)}
               </select>
               {formErrors.fieldOfWork ? <small>{formErrors.fieldOfWork}</small> : null}
             </label>
@@ -1338,11 +1390,7 @@ function App() {
                 onChange={handleInputChange}
               >
                 <option value="">Select an option</option>
-                {highestDegreeOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
+                {renderOptions(highestDegreeOptions)}
               </select>
               {formErrors.highestDegree ? <small>{formErrors.highestDegree}</small> : null}
             </label>
@@ -1694,11 +1742,7 @@ function App() {
                           }
                         >
                           <option value="">Select an option</option>
-                          {contactFieldOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
+                          {renderOptions(contactFieldOptions)}
                         </select>
                       </label>
                       <label className="experience-form-field">
@@ -1710,11 +1754,7 @@ function App() {
                           }
                         >
                           <option value="">Select an option</option>
-                          {highestDegreeOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
+                          {renderOptions(highestDegreeOptions)}
                         </select>
                       </label>
                       <label className="experience-form-field">
@@ -1823,44 +1863,7 @@ function App() {
                         <p className="contact-field">{contact.fieldOfWork || 'Field not provided'}</p>
                         <h3>{contact.fullName}</h3>
                       </div>
-                      <dl className="contact-meta">
-                        <div>
-                          <dt>Gender</dt>
-                          <dd>{contact.gender || 'Not provided'}</dd>
-                        </div>
-                        <div>
-                          <dt>Field of Work</dt>
-                          <dd>{contact.fieldOfWork || 'Not provided'}</dd>
-                        </div>
-                        <div>
-                          <dt>Highest Degree Obtained</dt>
-                          <dd>{contact.highestDegree || 'Not provided'}</dd>
-                        </div>
-                        <div>
-                          <dt>Graduation Date</dt>
-                          <dd>{formatDateObtained(contact.degreeObtainedDate)}</dd>
-                        </div>
-                        <div>
-                          <dt>Current Title</dt>
-                          <dd>{contact.currentTitle}</dd>
-                        </div>
-                        <div>
-                          <dt>Current Employer</dt>
-                          <dd>{contact.currentEmployer}</dd>
-                        </div>
-                        <div>
-                          <dt>Willing to Be Contacted?</dt>
-                          <dd>{formatYesNo(contact.willingToBeContacted)}</dd>
-                        </div>
-                        <div>
-                          <dt>Best form of contact?</dt>
-                          <dd>{contact.bestFormOfContact}</dd>
-                        </div>
-                        <div>
-                          <dt>Location</dt>
-                          <dd>{contact.location}</dd>
-                        </div>
-                      </dl>
+                      {renderContactMeta(contact)}
                       <p className="contact-notes">
                         {contact.previousWork || 'No previous work listed.'}
                       </p>
@@ -1950,44 +1953,7 @@ function App() {
                     </p>
                   </div>
 
-                  <dl className="contact-meta">
-                    <div>
-                      <dt>Gender</dt>
-                      <dd>{submission.gender || 'Not provided'}</dd>
-                    </div>
-                    <div>
-                      <dt>Field of Work</dt>
-                      <dd>{submission.fieldOfWork || 'Not provided'}</dd>
-                    </div>
-                    <div>
-                      <dt>Highest Degree Obtained</dt>
-                      <dd>{submission.highestDegree || 'Not provided'}</dd>
-                    </div>
-                    <div>
-                      <dt>Graduation Date</dt>
-                      <dd>{formatDateObtained(submission.degreeObtainedDate)}</dd>
-                    </div>
-                    <div>
-                      <dt>Current Title</dt>
-                      <dd>{submission.currentTitle}</dd>
-                    </div>
-                    <div>
-                      <dt>Current Employer</dt>
-                      <dd>{submission.currentEmployer}</dd>
-                    </div>
-                    <div>
-                      <dt>Willing to Be Contacted?</dt>
-                      <dd>{formatYesNo(submission.willingToBeContacted)}</dd>
-                    </div>
-                    <div>
-                      <dt>Best form of contact?</dt>
-                      <dd>{submission.bestFormOfContact}</dd>
-                    </div>
-                    <div>
-                      <dt>Location</dt>
-                      <dd>{submission.location}</dd>
-                    </div>
-                  </dl>
+                  {renderContactMeta(submission)}
 
                   <p className="contact-notes">
                     {submission.previousWork || 'No previous work listed.'}
@@ -2137,11 +2103,7 @@ function App() {
                           }
                         >
                           <option value="">Select an option</option>
-                          {idealCandidateOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
+                          {renderOptions(idealCandidateOptions)}
                         </select>
                       </label>
                       <label className="experience-form-field">
@@ -2153,11 +2115,7 @@ function App() {
                           }
                         >
                           <option value="">Select an option</option>
-                          {opportunityTypeOptions.map((option) => (
-                            <option key={option} value={option}>
-                              {option}
-                            </option>
-                          ))}
+                          {renderOptions(opportunityTypeOptions)}
                         </select>
                       </label>
                       <label className="experience-form-field">
@@ -2214,56 +2172,7 @@ function App() {
 
                   <p className="internship-description">{internship.summary}</p>
 
-                  <div className="internship-table-wrapper">
-                    <table className="internship-table">
-                      <tbody>
-                        <tr>
-                          <th scope="row">Name of Internship</th>
-                          <td>{internship.name}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">Institution</th>
-                          <td>{internship.institution}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">Location</th>
-                          <td>{internship.location || 'Not provided'}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">Summary</th>
-                          <td>{internship.summary || 'Not provided'}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">Ideal Candidate</th>
-                          <td>{internship.idealCandidate || 'Not provided'}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">Clinical or Basic Science or Other</th>
-                          <td>{internship.opportunityType || 'Not provided'}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">Deadline</th>
-                          <td>{internship.deadline || 'Not provided'}</td>
-                        </tr>
-                        <tr>
-                          <th scope="row">Website</th>
-                          <td>
-                            {internship.website ? (
-                              <a
-                                href={getWebsiteHref(internship.website)}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {internship.website}
-                              </a>
-                            ) : (
-                              'Not provided'
-                            )}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  {renderInternshipTable(internship)}
 
                   {isAdmin ? (
                     <div className="internship-admin-actions">
