@@ -19,7 +19,7 @@ export function HomePage({ onNavigate }: HomePageProps) {
       >
         <div className="home-hero-copy">
           <p className="section-label">Sattler Pre-Health Association</p>
-          <h1>Find</h1>
+          <h1>Find mentors</h1>
           <h1>Ask questions</h1>
           <h1>Move forward</h1>
         </div>
