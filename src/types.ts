@@ -13,7 +13,7 @@ export type Contact = {
   currentEmployer: string
   previousWork: string
   willingToBeContacted: boolean | null
-  bestFormOfContact: string
+  email: string
   location: string
 }
 
@@ -49,7 +49,7 @@ export type AlumniSubmission = {
   currentEmployer: string
   previousWork: string
   willingToBeContacted: boolean
-  bestFormOfContact: string
+  email: string
   location: string
   consentToShare: boolean
   status: 'pending' | 'approved' | 'rejected'
@@ -68,7 +68,7 @@ export type ContactProfile = Pick<
   | 'currentTitle'
   | 'currentEmployer'
   | 'willingToBeContacted'
-  | 'bestFormOfContact'
+  | 'email'
   | 'location'
 >
 
@@ -84,7 +84,7 @@ export type ContactRow = {
   current_employer: string
   previous_work: string | null
   willing_to_be_contacted: boolean | null
-  best_form_of_contact: string
+  email: string | null
   location: string
 }
 
@@ -121,7 +121,7 @@ export type AlumniSubmissionRow = {
   current_employer: string
   previous_work: string | null
   willing_to_be_contacted: boolean
-  best_form_of_contact: string
+  email: string | null
   location: string
   consent_to_share: boolean
   status: 'pending' | 'approved' | 'rejected'
@@ -147,7 +147,7 @@ export type SubmissionFormData = {
   currentEmployer: string
   previousWork: string
   willingToBeContacted: string
-  bestFormOfContact: string
+  email: string
   location: string
   consentToShare: boolean
 }

@@ -10,11 +10,11 @@ export function ContactMeta({ profile }: ContactMetaProps) {
     ['Gender', profile.gender || 'Not provided'],
     ['Field of Work', profile.fieldOfWork || 'Not provided'],
     ['Highest Degree Obtained', profile.highestDegree || 'Not provided'],
-    ['Graduation Date', formatDateObtained(profile.degreeObtainedDate)],
+    ['Graduation Year', formatDateObtained(profile.degreeObtainedDate)],
     ['Current Title', profile.currentTitle],
     ['Current Employer', profile.currentEmployer],
     ['Willing to Be Contacted?', formatYesNo(profile.willingToBeContacted)],
-    ['Best form of contact?', profile.bestFormOfContact],
+    ['Email', profile.email],
     ['Location', profile.location],
   ]
 
