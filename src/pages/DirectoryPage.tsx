@@ -1,5 +1,5 @@
 import type { Contact, ContactEditDraft, View } from '../types'
-import { contactFieldOptions, highestDegreeOptions } from '../constants'
+import { contactFieldOptions, graduationYearOptions, highestDegreeOptions } from '../constants'
 import { ContactMeta } from '../components/ContactMeta'
 import { FormOptions } from '../components/FormOptions'
 
@@ -180,12 +180,14 @@ function ContactEditForm({
         </select>
       </label>
       <label className="experience-form-field">
-        <span>Graduation Date</span>
-        <input
-          type="date"
+        <span>Graduation Year</span>
+        <select
           value={draft.degreeObtainedDate}
           onChange={(e) => onChange('degreeObtainedDate', e.target.value)}
-        />
+        >
+          <option value="">Select a year</option>
+          <FormOptions options={graduationYearOptions} />
+        </select>
       </label>
       <label className="experience-form-field">
         <span>Current Title</span>
@@ -217,11 +219,11 @@ function ContactEditForm({
         </select>
       </label>
       <label className="experience-form-field">
-        <span>Best form of contact?</span>
+        <span>Email</span>
         <input
-          type="text"
-          value={draft.bestFormOfContact}
-          onChange={(e) => onChange('bestFormOfContact', e.target.value)}
+          type="email"
+          value={draft.email}
+          onChange={(e) => onChange('email', e.target.value)}
         />
       </label>
       <label className="experience-form-field">

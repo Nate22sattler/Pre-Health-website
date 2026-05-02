@@ -21,7 +21,7 @@ export function mapContactRow(row: ContactRow): Contact {
     currentEmployer: row.current_employer,
     previousWork: row.previous_work ?? '',
     willingToBeContacted: row.willing_to_be_contacted,
-    bestFormOfContact: row.best_form_of_contact,
+    email: row.email ?? '',
     location: row.location,
   }
 }
@@ -63,7 +63,7 @@ export function mapAlumniSubmissionRow(row: AlumniSubmissionRow): AlumniSubmissi
     currentEmployer: row.current_employer,
     previousWork: row.previous_work ?? '',
     willingToBeContacted: row.willing_to_be_contacted,
-    bestFormOfContact: row.best_form_of_contact,
+    email: row.email ?? '',
     location: row.location,
     consentToShare: row.consent_to_share,
     status: row.status,

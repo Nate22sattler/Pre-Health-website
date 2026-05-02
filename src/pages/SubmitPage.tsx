@@ -1,5 +1,5 @@
 import type { ChangeEvent } from 'react'
-import { contactFieldOptions, highestDegreeOptions } from '../constants'
+import { contactFieldOptions, graduationYearOptions, highestDegreeOptions } from '../constants'
 import type { SubmissionFormData, SubmitHandler } from '../types'
 import { FormOptions } from '../components/FormOptions'
 
@@ -102,13 +102,15 @@ export function SubmitPage({
           </label>
 
           <label className="form-field">
-            <span>Graduation Date</span>
-            <input
+            <span>Graduation Year</span>
+            <select
               name="degreeObtainedDate"
-              type="date"
               value={formData.degreeObtainedDate}
               onChange={onInputChange}
-            />
+            >
+              <option value="">Select a year</option>
+              <FormOptions options={graduationYearOptions} />
+            </select>
             {formErrors.degreeObtainedDate ? <small>{formErrors.degreeObtainedDate}</small> : null}
           </label>
 
@@ -161,17 +163,14 @@ export function SubmitPage({
           </label>
 
           <label className="form-field">
-            <span>Best form of contact?</span>
-            <select
-              name="bestFormOfContact"
-              value={formData.bestFormOfContact}
+            <span>Email</span>
+            <input
+              name="email"
+              type="email"
+              value={formData.email}
               onChange={onInputChange}
-            >
-              <option value="">Select one</option>
-              <option value="Phone">Phone</option>
-              <option value="Email">Email</option>
-            </select>
-            {formErrors.bestFormOfContact ? <small>{formErrors.bestFormOfContact}</small> : null}
+            />
+            {formErrors.email ? <small>{formErrors.email}</small> : null}
           </label>
 
           <label className="form-field">
