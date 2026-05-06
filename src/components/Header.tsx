@@ -28,7 +28,7 @@ export function Header({ view, isAdmin, onNavigate, onSignOut }: HeaderProps) {
             className={view === 'directory' ? 'nav-link active' : 'nav-link'}
             onClick={() => onNavigate('directory')}
           >
-            Alumni contacts
+            Directory
           </button>
           <button
             className={view === 'internships' ? 'nav-link active' : 'nav-link'}
