@@ -584,7 +584,7 @@ function App() {
         current_employer: contactEditDraft.currentEmployer,
         previous_work: contactEditDraft.previousWork || null,
         willing_to_be_contacted: contactEditDraft.willingToBeContacted,
-        best_form_of_contact: contactEditDraft.bestFormOfContact,
+        email: contactEditDraft.email.trim(),
         location: contactEditDraft.location,
       })
       .eq('id', contactId)
@@ -757,7 +757,7 @@ function App() {
       nextErrors.highestDegree = 'Please select your highest degree.'
     }
     if (!formData.degreeObtainedDate.trim()) {
-      nextErrors.degreeObtainedDate = 'Please enter your graduation date.'
+      nextErrors.degreeObtainedDate = 'Please select your graduation year.'
     }
     if (!formData.currentTitle.trim()) nextErrors.currentTitle = 'Please enter your current title.'
     if (!formData.currentEmployer.trim()) {
@@ -767,8 +767,8 @@ function App() {
     if (!formData.willingToBeContacted.trim()) {
       nextErrors.willingToBeContacted = 'Please let us know if you are willing to be contacted.'
     }
-    if (!formData.bestFormOfContact.trim()) {
-      nextErrors.bestFormOfContact = 'Please choose the best form of contact.'
+    if (!formData.email.trim()) {
+      nextErrors.email = 'Please enter your email.'
     }
     if (!formData.consentToShare) {
       nextErrors.consentToShare =
@@ -804,7 +804,7 @@ function App() {
       current_employer: formData.currentEmployer.trim(),
       previous_work: formData.previousWork.trim() || null,
       willing_to_be_contacted: formData.willingToBeContacted === 'true',
-      best_form_of_contact: formData.bestFormOfContact.trim(),
+      email: formData.email.trim(),
       location: formData.location.trim(),
       consent_to_share: formData.consentToShare,
       status: 'pending',
@@ -846,7 +846,7 @@ function App() {
           current_employer: submission.currentEmployer,
           previous_work: submission.previousWork || null,
           willing_to_be_contacted: submission.willingToBeContacted,
-          best_form_of_contact: submission.bestFormOfContact,
+          email: submission.email,
           location: submission.location,
         })
         .select('*')

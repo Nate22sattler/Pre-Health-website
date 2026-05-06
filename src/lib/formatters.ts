@@ -13,6 +13,10 @@ export function formatDateObtained(date: string): string {
     return 'Not provided'
   }
 
+  if (/^\d{4}$/.test(date)) {
+    return date
+  }
+
   const [year, month, day] = date.slice(0, 10).split('-')
 
   if (!year || !month || !day) {

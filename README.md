@@ -1,75 +1,32 @@
-<!-- It’s documentation for a project that gives you a working foundation so you don’t have to build everything from scratch -->
+# Project Title
+Pre-Health Association website
 
-# React + TypeScript + Vite
+## Project Description
+This project is a website created for the Sattler Pre-Health Association. It facilitates connection between students, alumni, and health professional, and organizes information about internships that students might pursue. 
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Usage
+### General Usage
+To access the webiste, users need to sign in with Google using an @sattler.edu email. 
 
-Currently, two official plugins are available:
+The home page introduces the goal and purpose of the website and informs users how to use it. It also provides both a navbar and navigation cards that take users to the various pages on the website. 
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+The "Directory" page is designed to help students find contacts and mentors in fields of their interest. It lists personal and professional information about alumni and health professions. Users can filter contacts by field of work/study. It also includes a button that navigates users to a submission page in which they can submit their information if desired. That submission page includes a shareable link that people without a Sattler email (without access to the website) can use to submit their professional information.
 
-## React Compiler
+The "Internships" page explains why and what users should look for in an internship. It also lists steps for finding and applying to internships. The main section of the page consists of internship cards that list the basic information that students will need to determine whether the internship matches what they are looking for.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Finally, apart from buttons for the pages mentioned, the navbar includes a sign out button in case users wish to switch accounts.
 
-## Expanding the ESLint configuration
+### Admin Usage
+For admin users, there are a few changes to the website's functionality. First, the navbar includes a "Review submissions" page where admin can either approve or reject information submitted by alumni or health professionals. The website does not display the information unless approved by an admin. The only change for admin is that contact card and internship card on their respective pages includes an edit button and a delete button, which admin can use to make any necessary changes.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Installation and Setup
+Steps to run the website 
+1.	Download and open the Pre-Health-website in vs code 
+2.	In the terminal run npm install
+3.	Run npm run dev
+4.	Click the generated link to render the website
+5.	Log in with your Sattler Google account
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Authors
+- Nevan Miller - nevan.miller23@sattler.edu
+- Nathaniel Weiler - nate.weiler22@sattler.edu
