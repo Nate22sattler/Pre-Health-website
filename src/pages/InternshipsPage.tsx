@@ -56,7 +56,7 @@ export function InternshipsPage(props: InternshipsPageProps) {
           <p className="section-label">Internship guide</p>
           <h2>Where ambition meets innovation. Find a world-class internship that shapes your future.</h2>
           <p className="lead">
-            Start exploring internships across clinical, research, and community health settingsâ€”each
+            Start exploring internships across clinical, research, and community health settings. Each
             opportunity is designed to help you understand its fit, timing, and how to prepare.
           </p>
         </div>

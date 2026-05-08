@@ -47,10 +47,9 @@ export function DirectoryPage({
       <section className="directory-header">
         <div>
           <p className="section-label">Alumni directory</p>
-          <h2>Start with a small, high-trust list of mentors.</h2>
+          <h2>Reach out with confidence to our curated list of trusted contacts.</h2>
           <p className="lead">
-            Even ten strong contacts can make a huge difference in your confidence and clarity.
-            Browse the directory to find alumni mentors you can reach out to for advice,
+            Browse the directory to find alumni mentors or professionals in your field of interest. Feel free to reach out for advice,
             informational interviews, or shadowing opportunities.
           </p>
         </div>
