@@ -307,13 +307,7 @@ function App() {
     }
   }, [authLoading, session])
 
-  const fields = [
-    'All fields',
-    ...new Set([
-      ...contactFieldOptions,
-      ...contacts.map((contact) => contact.fieldOfWork).filter(Boolean),
-    ]),
-  ]
+  const fields = ['All fields', ...contactFieldOptions]
   const normalizedPath = window.location.pathname.replace(/\/$/, '')
   const isPublicAlumniSubmissionRoute =
     normalizedPath === '/alumni-submit' || window.location.hash === '#alumni-submit'
