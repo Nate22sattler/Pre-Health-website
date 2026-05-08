@@ -245,6 +245,10 @@ function InternshipEditForm({ internshipId, draft, ...props }: InternshipEditFor
         <span>Website</span>
         <input type="text" value={draft.website} onChange={(e) => props.onInternshipEditDraftChange('website', e.target.value)} />
       </label>
+      <label className="experience-form-field">
+        <span>Comments</span>
+        <textarea rows={3} value={draft.comments} onChange={(e) => props.onInternshipEditDraftChange('comments', e.target.value)} />
+      </label>
       <div className="internship-admin-actions">
         <button
           type="button"

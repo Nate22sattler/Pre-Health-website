@@ -27,6 +27,7 @@ export type Internship = {
   opportunityType: string
   deadline: string
   website: string
+  comments: string
 }
 
 export type InternshipExperience = {
@@ -98,6 +99,7 @@ export type InternshipRow = {
   opportunity_type: string | null
   deadline: string | null
   website: string | null
+  comments: string | null
 }
 
 export type InternshipExperienceRow = {

@@ -37,6 +37,7 @@ export function mapInternshipRow(row: InternshipRow): Internship {
     opportunityType: row.opportunity_type ?? '',
     deadline: row.deadline ?? '',
     website: row.website ?? '',
+    comments: row.comments ?? '',
   }
 }
 

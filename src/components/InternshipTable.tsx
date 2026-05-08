@@ -38,6 +38,10 @@ export function InternshipTable({ internship }: InternshipTableProps) {
               )}
             </td>
           </tr>
+          <tr>
+            <th scope="row">Comments</th>
+            <td>{internship.comments || 'No comments yet.'}</td>
+          </tr>
         </tbody>
       </table>
     </div>

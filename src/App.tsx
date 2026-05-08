@@ -655,6 +655,7 @@ function App() {
         opportunity_type: internshipEditDraft.opportunityType || null,
         deadline: internshipEditDraft.deadline || null,
         website: internshipEditDraft.website || null,
+        comments: internshipEditDraft.comments || null,
       })
       .eq('id', internshipId)
 
