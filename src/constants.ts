@@ -10,6 +10,7 @@ export const contactFieldOptions = [
   'OT/PT',
   'Dentistry',
   'Public Health',
+  'Psychology',
   'Other',
 ]
 export const highestDegreeOptions = ['Associate', "Bachelor's", "Master's", 'Doctorate']
