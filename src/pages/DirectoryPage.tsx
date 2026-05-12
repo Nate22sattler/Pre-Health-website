@@ -2,6 +2,7 @@ import type { Contact, ContactEditDraft, View } from '../types'
 import { contactFieldOptions, graduationYearOptions, highestDegreeOptions } from '../constants'
 import { ContactMeta } from '../components/ContactMeta'
 import { FormOptions } from '../components/FormOptions'
+import alumniDirectoryPhoto from '../assets/alumni-directory-group.jpeg'
 
 type DirectoryPageProps = {
   selectedField: string
@@ -45,31 +46,37 @@ export function DirectoryPage({
   return (
     <main className="page">
       <section className="directory-header">
-        <div>
+        <div className="directory-copy">
           <p className="section-label">Alumni directory</p>
           <h2>Reach out with confidence to our curated list of trusted contacts.</h2>
           <p className="lead">
             Browse the directory to find alumni mentors or professionals in your field of interest. Feel free to reach out for advice,
             informational interviews, or shadowing opportunities.
           </p>
+
+          <div className="directory-actions">
+            <label className="filter">
+              <span>Filter by field</span>
+              <select value={selectedField} onChange={(event) => onSelectedFieldChange(event.target.value)}>
+                {fields.map((field) => (
+                  <option key={field} value={field}>
+                    {field}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button className="primary-button" onClick={() => onNavigate('submit')}>
+              Submit Your Information
+            </button>
+          </div>
         </div>
 
-        <div className="directory-actions">
-          <label className="filter">
-            <span>Filter by field</span>
-            <select value={selectedField} onChange={(event) => onSelectedFieldChange(event.target.value)}>
-              {fields.map((field) => (
-                <option key={field} value={field}>
-                  {field}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button className="primary-button" onClick={() => onNavigate('submit')}>
-            Submit Your Information
-          </button>
-        </div>
+        <img
+          className="directory-photo"
+          src={alumniDirectoryPhoto}
+          alt="Sattler pre-health alumni and students gathered together"
+        />
       </section>
 
       <section className="directory-grid">

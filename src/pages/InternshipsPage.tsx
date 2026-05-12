@@ -5,6 +5,7 @@ import type {
   Internship,
   InternshipExperience,
 } from '../types'
+import internshipHeroImage from '../assets/internship-hero.jpeg'
 import { createExperienceDraft, idealCandidateOptions, opportunityTypeOptions } from '../constants'
 import { formatExperienceDate } from '../lib/formatters'
 import { FormOptions } from '../components/FormOptions'
@@ -61,6 +62,35 @@ export function InternshipsPage(props: InternshipsPageProps) {
           </p>
         </div>
 
+        <article
+          className="internship-photo-card"
+          aria-label="Student presenting internship research"
+          style={{ backgroundImage: `url(${internshipHeroImage})` }}
+        />
+      </section>
+
+      <section className="internship-overview">
+        <div className="internship-overview-stack">
+          <article className="content-card">
+            <p className="section-label">Why Internships</p>
+            <h3>Explore your future career through real-world internship experience.</h3>
+            <p>
+               Internships bridge the gap between classroom learning and your future career, helping 
+               you test and refine your goals before fully committing to a path. By conducting real-world 
+               work and engaging with professionals, you grow intellectually, socially, and gain clarity about your future.
+            </p>
+          </article>
+
+          <article className="content-card">
+            <p className="section-label">What to look for</p>
+            <h3>Choose opportunities with clear learning value.</h3>
+            <p>
+              Strong internship options relate to and align with personal career considerations. They 
+              offer strong mentorship, networking opportunities, soft-skills training.
+            </p>
+          </article>
+        </div>
+
         <aside className="signal-card">
           <p className="section-label">How to Find and Apply for Internships</p>
           <ol>
@@ -76,28 +106,11 @@ export function InternshipsPage(props: InternshipsPageProps) {
         </aside>
       </section>
 
-      <section className="internship-overview">
-        <article className="content-card">
-          <p className="section-label">Why Internships</p>
-          <h3>Explore your future career through real-world internship experience.</h3>
-          <p>
-             Internships bridge the gap between classroom learning and your future career, helping 
-             you test and refine your goals before fully committing to a path. By conducting real-world 
-             work and engaging with professionals, you grow intellectually, socially, and gain clarity about your future.
-          </p>
-        </article>
-
-        <article className="content-card">
-          <p className="section-label">What to look for</p>
-          <h3>Choose opportunities with clear learning value.</h3>
-          <p>
-            Strong internship options relate to and align with personal career considerations. They 
-            offer strong mentorship, networking opportunities, soft-skills training.
-          </p>
-        </article>
-      </section>
-
       <section className="internships-list">
+        <div className="internships-section-divider">
+          <span>Internship Opportunities</span>
+        </div>
+
         {props.loading ? (
           <article className="content-card status-card">
             <p>Loading internships...</p>
