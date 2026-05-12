@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js'
 import './App.css'
 import {
   getInstitutionalAccessMessage,
+  getAuthRedirectUrl,
   isAllowedInstitutionEmail,
   readAuthCallbackError,
 } from './auth'
@@ -328,14 +329,10 @@ function App() {
     setAuthError(null)
     setIsSigningIn(true)
 
-    const redirectUrl = new URL(window.location.href)
-    redirectUrl.search = ''
-    redirectUrl.hash = ''
-
     const { error: signInError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: redirectUrl.toString(),
+        redirectTo: getAuthRedirectUrl(),
       },
     })
 

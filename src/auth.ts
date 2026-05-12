@@ -22,6 +22,20 @@ export function getInstitutionalAccessMessage(): string {
   return `Only Google accounts with an ${ALLOWED_EMAIL_DOMAIN_LABEL} email address can access this site.`
 }
 
+export function getAuthRedirectUrl(): string {
+  const configuredRedirectUrl = import.meta.env.VITE_AUTH_REDIRECT_URL?.trim()
+
+  if (configuredRedirectUrl) {
+    return configuredRedirectUrl
+  }
+
+  const redirectUrl = new URL(window.location.href)
+  redirectUrl.search = ''
+  redirectUrl.hash = ''
+
+  return redirectUrl.toString()
+}
+
 export function readAuthCallbackError(): string | null {
   if (typeof window === 'undefined') {
     return null
