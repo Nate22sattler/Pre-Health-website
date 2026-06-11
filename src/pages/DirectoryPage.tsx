@@ -1,5 +1,11 @@
 import type { Contact, ContactEditDraft, View } from '../types'
-import { contactFieldOptions, graduationYearOptions, highestDegreeOptions } from '../constants'
+import {
+  advisingAreaOptions,
+  contactFieldOptions,
+  employmentStatusOptions,
+  graduationYearOptions,
+  highestDegreeOptions,
+} from '../constants'
 import { ContactMeta } from '../components/ContactMeta'
 import { FormOptions } from '../components/FormOptions'
 import alumniDirectoryPhoto from '../assets/alumni-directory-group.jpeg'
@@ -19,7 +25,10 @@ type DirectoryPageProps = {
   onNavigate: (view: View) => void
   onContactEditStart: (contact: Contact) => void
   onContactEditCancel: () => void
-  onContactEditDraftChange: (field: keyof ContactEditDraft, value: string | boolean | null) => void
+  onContactEditDraftChange: (
+    field: keyof ContactEditDraft,
+    value: string | string[] | boolean | null,
+  ) => void
   onContactEditSave: (contactId: string) => void
   onContactDelete: (contactId: string) => void
 }
@@ -111,7 +120,7 @@ export function DirectoryPage({
                     <h3>{contact.fullName}</h3>
                   </div>
                   <ContactMeta profile={contact} />
-                  <p className="contact-notes">{contact.previousWork || 'No previous work listed.'}</p>
+                  <p className="contact-notes">{contact.bio || 'No bio provided.'}</p>
                   {isAdmin ? (
                     <div className="contact-admin-actions">
                       <button
@@ -146,7 +155,7 @@ type ContactEditFormProps = {
   draft: ContactEditDraft
   isSaving: boolean
   onCancel: () => void
-  onChange: (field: keyof ContactEditDraft, value: string | boolean | null) => void
+  onChange: (field: keyof ContactEditDraft, value: string | string[] | boolean | null) => void
   onSave: (contactId: string) => void
 }
 
@@ -171,6 +180,32 @@ function ContactEditForm({
         <span>Gender</span>
         <input type="text" value={draft.gender} onChange={(e) => onChange('gender', e.target.value)} />
       </label>
+      <label className="experience-form-field">
+        <span>Current Status</span>
+        <select
+          value={draft.employmentStatus}
+          onChange={(e) => {
+            onChange('employmentStatus', e.target.value)
+
+            if (e.target.value !== 'Student') {
+              onChange('currentProgramGraduationDate', '')
+            }
+          }}
+        >
+          <option value="">Select one</option>
+          <FormOptions options={employmentStatusOptions} />
+        </select>
+      </label>
+      {draft.employmentStatus === 'Student' ? (
+        <label className="experience-form-field">
+          <span>Graduation Date from Current Program</span>
+          <input
+            type="date"
+            value={draft.currentProgramGraduationDate}
+            onChange={(e) => onChange('currentProgramGraduationDate', e.target.value)}
+          />
+        </label>
+      ) : null}
       <label className="experience-form-field">
         <span>Field of Work</span>
         <select value={draft.fieldOfWork} onChange={(e) => onChange('fieldOfWork', e.target.value)}>
@@ -208,9 +243,42 @@ function ContactEditForm({
         />
       </label>
       <label className="experience-form-field">
-        <span>Any different previous work</span>
-        <textarea rows={3} value={draft.previousWork} onChange={(e) => onChange('previousWork', e.target.value)} />
+        <span>Bio</span>
+        <textarea rows={3} value={draft.bio} onChange={(e) => onChange('bio', e.target.value)} />
       </label>
+      <fieldset className="experience-form-field checkbox-group">
+        <legend>Willing to Advise In</legend>
+        {advisingAreaOptions.map((area) => (
+          <label key={area} className="checkbox-option">
+            <input
+              type="checkbox"
+              value={area}
+              checked={draft.willingToAdviseIn.includes(area)}
+              onChange={(e) => {
+                const nextAreas = e.target.checked
+                  ? [...draft.willingToAdviseIn, area]
+                  : draft.willingToAdviseIn.filter((currentArea) => currentArea !== area)
+                onChange('willingToAdviseIn', nextAreas)
+
+                if (area === 'Other' && !e.target.checked) {
+                  onChange('otherAdvisingArea', '')
+                }
+              }}
+            />
+            <span>{area}</span>
+          </label>
+        ))}
+      </fieldset>
+      {draft.willingToAdviseIn.includes('Other') ? (
+        <label className="experience-form-field">
+          <span>Other Advising Area</span>
+          <input
+            type="text"
+            value={draft.otherAdvisingArea}
+            onChange={(e) => onChange('otherAdvisingArea', e.target.value)}
+          />
+        </label>
+      ) : null}
       <label className="experience-form-field">
         <span>Willing to Be Contacted?</span>
         <select

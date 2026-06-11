@@ -552,8 +552,21 @@ function App() {
     setContactEditDraft(null)
   }
 
-  function handleContactEditDraftChange(field: keyof ContactEditDraft, value: string | boolean | null) {
-    setContactEditDraft((current) => (current ? { ...current, [field]: value } : current))
+  function handleContactEditDraftChange(
+    field: keyof ContactEditDraft,
+    value: string | string[] | boolean | null,
+  ) {
+    setContactEditDraft((current) =>
+      current
+        ? {
+            ...current,
+            [field]: value,
+            ...(field === 'employmentStatus' && value !== 'Student'
+              ? { currentProgramGraduationDate: '' }
+              : {}),
+          }
+        : current,
+    )
   }
 
   async function handleContactEditSave(contactId: string) {
@@ -568,12 +581,21 @@ function App() {
       .update({
         full_name: contactEditDraft.fullName,
         gender: contactEditDraft.gender || null,
+        employment_status: contactEditDraft.employmentStatus || null,
+        current_program_graduation_date:
+          contactEditDraft.employmentStatus === 'Student'
+            ? contactEditDraft.currentProgramGraduationDate || null
+            : null,
         field_of_work: contactEditDraft.fieldOfWork || null,
         highest_degree: contactEditDraft.highestDegree || null,
         degree_obtained_date: contactEditDraft.degreeObtainedDate || null,
         current_title: contactEditDraft.currentTitle,
         current_employer: contactEditDraft.currentEmployer,
-        previous_work: contactEditDraft.previousWork || null,
+        bio: contactEditDraft.bio || null,
+        willing_to_advise_in: contactEditDraft.willingToAdviseIn,
+        other_advising_area: contactEditDraft.willingToAdviseIn.includes('Other')
+          ? contactEditDraft.otherAdvisingArea.trim() || null
+          : null,
         willing_to_be_contacted: contactEditDraft.willingToBeContacted,
         email: contactEditDraft.email.trim(),
         location: contactEditDraft.location,
@@ -724,6 +746,28 @@ function App() {
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
   ) {
     const { name, value } = event.target
+
+    if (
+      event.target instanceof HTMLInputElement &&
+      event.target.type === 'checkbox' &&
+      name === 'willingToAdviseIn'
+    ) {
+      const { checked } = event.target
+
+      setFormData((current) => {
+        const nextAreas = checked
+          ? [...current.willingToAdviseIn, value]
+          : current.willingToAdviseIn.filter((area) => area !== value)
+
+        return {
+          ...current,
+          willingToAdviseIn: nextAreas,
+          ...(value === 'Other' && !checked ? { otherAdvisingArea: '' } : {}),
+        }
+      })
+      return
+    }
+
     const nextValue =
       event.target instanceof HTMLInputElement && event.target.type === 'checkbox'
         ? event.target.checked
@@ -732,11 +776,20 @@ function App() {
     setFormData((current) => ({
       ...current,
       [name]: nextValue,
+      ...(name === 'employmentStatus' && value !== 'Student'
+        ? { currentProgramGraduationDate: '' }
+        : {}),
+      ...(name === 'otherAdvisingArea' && !formData.willingToAdviseIn.includes('Other')
+        ? { otherAdvisingArea: '' }
+        : {}),
     }))
 
     setFormErrors((current) => ({
       ...current,
       [name]: '',
+      ...(name === 'employmentStatus' && value !== 'Student'
+        ? { currentProgramGraduationDate: '' }
+        : {}),
     }))
   }
 
@@ -744,6 +797,13 @@ function App() {
     const nextErrors: Partial<Record<keyof SubmissionFormData, string>> = {}
 
     if (!formData.fullName.trim()) nextErrors.fullName = 'Please enter your name.'
+    if (!formData.employmentStatus.trim()) {
+      nextErrors.employmentStatus = 'Please select whether you are employed or a student.'
+    }
+    if (formData.employmentStatus === 'Student' && !formData.currentProgramGraduationDate.trim()) {
+      nextErrors.currentProgramGraduationDate =
+        'Please enter your graduation date from your current program.'
+    }
     if (!formData.fieldOfWork.trim()) nextErrors.fieldOfWork = 'Please select your field of work.'
     if (!formData.highestDegree.trim()) {
       nextErrors.highestDegree = 'Please select your highest degree.'
@@ -789,12 +849,21 @@ function App() {
     const { error: submitError } = await supabase.from('alumni_submissions').insert({
       full_name: formData.fullName.trim(),
       gender: formData.gender.trim() || null,
+      employment_status: formData.employmentStatus || null,
+      current_program_graduation_date:
+        formData.employmentStatus === 'Student'
+          ? formData.currentProgramGraduationDate || null
+          : null,
       field_of_work: formData.fieldOfWork || null,
       highest_degree: formData.highestDegree || null,
       degree_obtained_date: formData.degreeObtainedDate || null,
       current_title: formData.currentTitle.trim(),
       current_employer: formData.currentEmployer.trim(),
-      previous_work: formData.previousWork.trim() || null,
+      bio: formData.bio.trim() || null,
+      willing_to_advise_in: formData.willingToAdviseIn,
+      other_advising_area: formData.willingToAdviseIn.includes('Other')
+        ? formData.otherAdvisingArea.trim() || null
+        : null,
       willing_to_be_contacted: formData.willingToBeContacted === 'true',
       email: formData.email.trim(),
       location: formData.location.trim(),
@@ -831,12 +900,21 @@ function App() {
         .insert({
           full_name: submission.fullName,
           gender: submission.gender || null,
+          employment_status: submission.employmentStatus || null,
+          current_program_graduation_date:
+            submission.employmentStatus === 'Student'
+              ? submission.currentProgramGraduationDate || null
+              : null,
           field_of_work: submission.fieldOfWork || null,
           highest_degree: submission.highestDegree || null,
           degree_obtained_date: submission.degreeObtainedDate || null,
           current_title: submission.currentTitle,
           current_employer: submission.currentEmployer,
-          previous_work: submission.previousWork || null,
+          bio: submission.bio || null,
+          willing_to_advise_in: submission.willingToAdviseIn,
+          other_advising_area: submission.willingToAdviseIn.includes('Other')
+            ? submission.otherAdvisingArea || null
+            : null,
           willing_to_be_contacted: submission.willingToBeContacted,
           email: submission.email,
           location: submission.location,

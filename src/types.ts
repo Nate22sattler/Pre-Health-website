@@ -6,12 +6,16 @@ export type Contact = {
   id: string
   fullName: string
   gender: string
+  employmentStatus: string
+  currentProgramGraduationDate: string
   fieldOfWork: string
   highestDegree: string
   degreeObtainedDate: string
   currentTitle: string
   currentEmployer: string
-  previousWork: string
+  bio: string
+  willingToAdviseIn: string[]
+  otherAdvisingArea: string
   willingToBeContacted: boolean | null
   email: string
   location: string
@@ -43,12 +47,16 @@ export type AlumniSubmission = {
   id: string
   fullName: string
   gender: string
+  employmentStatus: string
+  currentProgramGraduationDate: string
   fieldOfWork: string
   highestDegree: string
   degreeObtainedDate: string
   currentTitle: string
   currentEmployer: string
-  previousWork: string
+  bio: string
+  willingToAdviseIn: string[]
+  otherAdvisingArea: string
   willingToBeContacted: boolean
   email: string
   location: string
@@ -63,11 +71,15 @@ export type ContactEditDraft = Omit<Contact, 'id'>
 export type ContactProfile = Pick<
   Contact,
   | 'gender'
+  | 'employmentStatus'
+  | 'currentProgramGraduationDate'
   | 'fieldOfWork'
   | 'highestDegree'
   | 'degreeObtainedDate'
   | 'currentTitle'
   | 'currentEmployer'
+  | 'willingToAdviseIn'
+  | 'otherAdvisingArea'
   | 'willingToBeContacted'
   | 'email'
   | 'location'
@@ -77,13 +89,18 @@ export type ContactRow = {
   id: string
   full_name: string
   gender: string | null
+  employment_status: string | null
+  current_program_graduation_date: string | null
   field_of_work: string | null
   highest_degree: string | null
   degree_obtained_date: string | null
   highest_degree_and_date: string | null
   current_title: string
   current_employer: string
-  previous_work: string | null
+  bio: string | null
+  previous_work?: string | null
+  willing_to_advise_in: string[] | null
+  other_advising_area: string | null
   willing_to_be_contacted: boolean | null
   email: string | null
   location: string
@@ -115,13 +132,18 @@ export type AlumniSubmissionRow = {
   id: string
   full_name: string
   gender: string | null
+  employment_status: string | null
+  current_program_graduation_date: string | null
   field_of_work: string | null
   highest_degree: string | null
   degree_obtained_date: string | null
   highest_degree_and_date: string | null
   current_title: string
   current_employer: string
-  previous_work: string | null
+  bio: string | null
+  previous_work?: string | null
+  willing_to_advise_in: string[] | null
+  other_advising_area: string | null
   willing_to_be_contacted: boolean
   email: string | null
   location: string
@@ -142,12 +164,16 @@ export type ExperiencePanelMode = 'read' | 'share'
 export type SubmissionFormData = {
   fullName: string
   gender: string
+  employmentStatus: string
+  currentProgramGraduationDate: string
   fieldOfWork: string
   highestDegree: string
   degreeObtainedDate: string
   currentTitle: string
   currentEmployer: string
-  previousWork: string
+  bio: string
+  willingToAdviseIn: string[]
+  otherAdvisingArea: string
   willingToBeContacted: string
   email: string
   location: string

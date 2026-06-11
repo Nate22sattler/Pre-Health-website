@@ -68,7 +68,7 @@ export function ReviewPage({
 
               <ContactMeta profile={submission} />
               <p className="contact-notes">
-                {submission.previousWork || 'No previous work listed.'}
+                {submission.bio || 'No bio provided.'}
               </p>
 
               <div className="contact-admin-actions">

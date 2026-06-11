@@ -562,6 +562,14 @@
   color: var(--ink);
 }
 
+.form-field legend,
+.experience-form-field legend {
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
 .form-field input,
 .form-field select,
 .form-field textarea {
@@ -590,6 +598,27 @@
 .form-field small {
   color: #9d2b2b;
   font-size: 0.82rem;
+}
+
+.form-field .field-help {
+  color: var(--muted);
+}
+
+.checkbox-group {
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.checkbox-option {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--text);
+}
+
+.checkbox-option input {
+  width: auto;
 }
 
 .form-field-wide {
@@ -833,6 +862,10 @@
   color: var(--text);
   font: inherit;
   padding: 12px 14px;
+}
+
+.experience-form-field .checkbox-option input {
+  width: auto;
 }
 
 .experience-form-field textarea {

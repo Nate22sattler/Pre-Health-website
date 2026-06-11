@@ -1,5 +1,11 @@
 import type { ChangeEvent } from 'react'
-import { contactFieldOptions, graduationYearOptions, highestDegreeOptions } from '../constants'
+import {
+  advisingAreaOptions,
+  contactFieldOptions,
+  employmentStatusOptions,
+  graduationYearOptions,
+  highestDegreeOptions,
+} from '../constants'
 import type { SubmissionFormData, SubmitHandler } from '../types'
 import { FormOptions } from '../components/FormOptions'
 
@@ -41,7 +47,7 @@ export function SubmitPage({
           <p className="section-label">{isPublicPage ? 'Private review' : 'Shareable link'}</p>
           <ul>
             <li>Share your field, degree, current title, and employer.</li>
-            <li>Mention previous work that gives context to your path.</li>
+            <li>Share a brief bio that gives context to your path.</li>
             <li>Choose whether and how students or club leaders may contact you.</li>
           </ul>
           {!isPublicPage ? (
@@ -82,6 +88,34 @@ export function SubmitPage({
             <span>Gender</span>
             <input name="gender" type="text" value={formData.gender} onChange={onInputChange} />
           </label>
+
+          <label className="form-field">
+            <span>Current Status</span>
+            <select
+              name="employmentStatus"
+              value={formData.employmentStatus}
+              onChange={onInputChange}
+            >
+              <option value="">Select one</option>
+              <FormOptions options={employmentStatusOptions} />
+            </select>
+            {formErrors.employmentStatus ? <small>{formErrors.employmentStatus}</small> : null}
+          </label>
+
+          {formData.employmentStatus === 'Student' ? (
+            <label className="form-field">
+              <span>Graduation Date from Current Program</span>
+              <input
+                name="currentProgramGraduationDate"
+                type="date"
+                value={formData.currentProgramGraduationDate}
+                onChange={onInputChange}
+              />
+              {formErrors.currentProgramGraduationDate ? (
+                <small>{formErrors.currentProgramGraduationDate}</small>
+              ) : null}
+            </label>
+          ) : null}
 
           <label className="form-field">
             <span>Field of Work</span>
@@ -137,14 +171,47 @@ export function SubmitPage({
           </label>
 
           <label className="form-field">
-            <span>Any different previous work</span>
+            <span>Bio</span>
             <textarea
-              name="previousWork"
+              name="bio"
               rows={4}
-              value={formData.previousWork}
+              value={formData.bio}
               onChange={onInputChange}
             />
+            <small className="field-help">
+              In a few sentences, briefly describe your background, current trajectory, and future
+              career plans or anything else that you feel would help prospective mentees gauge
+              their alignment with your interests.
+            </small>
           </label>
+
+          <fieldset className="form-field checkbox-group">
+            <legend>Willing to Advise In</legend>
+            {advisingAreaOptions.map((area) => (
+              <label key={area} className="checkbox-option">
+                <input
+                  name="willingToAdviseIn"
+                  type="checkbox"
+                  value={area}
+                  checked={formData.willingToAdviseIn.includes(area)}
+                  onChange={onInputChange}
+                />
+                <span>{area}</span>
+              </label>
+            ))}
+          </fieldset>
+
+          {formData.willingToAdviseIn.includes('Other') ? (
+            <label className="form-field">
+              <span>Other Advising Area</span>
+              <input
+                name="otherAdvisingArea"
+                type="text"
+                value={formData.otherAdvisingArea}
+                onChange={onInputChange}
+              />
+            </label>
+          ) : null}
 
           <label className="form-field">
             <span>Willing to Be Contacted?</span>
