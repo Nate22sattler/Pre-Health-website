@@ -1,7 +1,7 @@
 import homeHeroImage from '../assets/Boston-hero.jpeg'
-import mentorCardImage from '../assets/mentor.jpg'
-import internshipCardImage from '../assets/intern.jpg'
-import careerCardImage from '../assets/career.jpg'
+import mentorCardImage from '../assets/real_mentor.jpeg'
+import internshipCardImage from '../assets/collab.jpeg'
+import careerCardImage from '../assets/phoenix.jpeg'
 import type { View } from '../types'
 
 type HomePageProps = {
@@ -81,7 +81,10 @@ export function HomePage({ onNavigate }: HomePageProps) {
         <button
           type="button"
           className="content-card content-card-photo"
-          style={{ backgroundImage: `url(${careerCardImage})` }}
+          style={{
+            backgroundImage: `url(${careerCardImage})`,
+            backgroundPosition: 'center 35%',
+          }}
           onClick={() => onNavigate('internships')}
         >
           <p className="section-label">real world experience</p>
