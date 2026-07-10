@@ -1,4 +1,4 @@
-import homeHeroImage from '../assets/v3.jpeg'
+import homeHeroImage from '../assets/Boston-hero.jpeg'
 import mentorCardImage from '../assets/mentor.jpg'
 import internshipCardImage from '../assets/intern.jpg'
 import careerCardImage from '../assets/career.jpg'
