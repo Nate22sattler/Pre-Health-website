@@ -19,6 +19,10 @@ type InternshipsPageProps = {
   currentUserId: string | undefined
   editingInternshipId: string | null
   internshipEditDraft: Omit<Internship, 'id'> | null
+  isAddingInternship: boolean
+  internshipCreateDraft: Omit<Internship, 'id'>
+  internshipCreateError: string | null
+  isCreatingInternship: boolean
   internshipSavingById: Record<string, boolean>
   internshipDeletingById: Record<string, boolean>
   experiencePanelModeByInternshipId: Record<string, ExperiencePanelMode | null>
@@ -38,6 +42,10 @@ type InternshipsPageProps = {
   onInternshipEditDraftChange: (field: keyof Omit<Internship, 'id'>, value: string) => void
   onInternshipEditSave: (internshipId: string) => void
   onInternshipDelete: (internshipId: string) => void
+  onInternshipCreateStart: () => void
+  onInternshipCreateCancel: () => void
+  onInternshipCreateDraftChange: (field: keyof Omit<Internship, 'id'>, value: string) => void
+  onInternshipCreateSave: () => void
   onToggleReadExperienceSection: (internshipId: string) => void
   onShareExperience: (internshipId: string) => void
   onExperienceDraftChange: (internshipId: string, field: keyof ExperienceDraft, value: string) => void
@@ -110,6 +118,22 @@ export function InternshipsPage(props: InternshipsPageProps) {
         <div className="internships-section-divider">
           <span>Internship Opportunities</span>
         </div>
+
+        {props.isAdmin ? (
+          <div className="internships-admin-toolbar">
+            {props.isAddingInternship ? null : (
+              <button type="button" className="primary-button" onClick={props.onInternshipCreateStart}>
+                Add internship
+              </button>
+            )}
+          </div>
+        ) : null}
+
+        {props.isAdmin && props.isAddingInternship ? (
+          <article className="internship-card internship-create-card">
+            <InternshipCreateForm {...props} />
+          </article>
+        ) : null}
 
         {props.loading ? (
           <article className="content-card status-card">
@@ -220,48 +244,7 @@ function InternshipEditForm({ internshipId, draft, ...props }: InternshipEditFor
       <div className="internship-header">
         <p className="section-label">Edit internship</p>
       </div>
-      <label className="experience-form-field">
-        <span>Name of Internship</span>
-        <input type="text" value={draft.name} onChange={(e) => props.onInternshipEditDraftChange('name', e.target.value)} />
-      </label>
-      <label className="experience-form-field">
-        <span>Institution</span>
-        <input type="text" value={draft.institution} onChange={(e) => props.onInternshipEditDraftChange('institution', e.target.value)} />
-      </label>
-      <label className="experience-form-field">
-        <span>Location</span>
-        <input type="text" value={draft.location} onChange={(e) => props.onInternshipEditDraftChange('location', e.target.value)} />
-      </label>
-      <label className="experience-form-field">
-        <span>Summary</span>
-        <textarea rows={3} value={draft.summary} onChange={(e) => props.onInternshipEditDraftChange('summary', e.target.value)} />
-      </label>
-      <label className="experience-form-field">
-        <span>Ideal Candidate</span>
-        <select value={draft.idealCandidate} onChange={(e) => props.onInternshipEditDraftChange('idealCandidate', e.target.value)}>
-          <option value="">Select an option</option>
-          <FormOptions options={idealCandidateOptions} />
-        </select>
-      </label>
-      <label className="experience-form-field">
-        <span>Clinical or Basic Science or Other</span>
-        <select value={draft.opportunityType} onChange={(e) => props.onInternshipEditDraftChange('opportunityType', e.target.value)}>
-          <option value="">Select an option</option>
-          <FormOptions options={opportunityTypeOptions} />
-        </select>
-      </label>
-      <label className="experience-form-field">
-        <span>Deadline</span>
-        <input type="text" value={draft.deadline} onChange={(e) => props.onInternshipEditDraftChange('deadline', e.target.value)} />
-      </label>
-      <label className="experience-form-field">
-        <span>Website</span>
-        <input type="text" value={draft.website} onChange={(e) => props.onInternshipEditDraftChange('website', e.target.value)} />
-      </label>
-      <label className="experience-form-field">
-        <span>Comments</span>
-        <textarea rows={3} value={draft.comments} onChange={(e) => props.onInternshipEditDraftChange('comments', e.target.value)} />
-      </label>
+      <InternshipDraftFields draft={draft} onChange={props.onInternshipEditDraftChange} />
       <div className="internship-admin-actions">
         <button
           type="button"
@@ -275,6 +258,93 @@ function InternshipEditForm({ internshipId, draft, ...props }: InternshipEditFor
           Cancel
         </button>
       </div>
+    </>
+  )
+}
+
+function InternshipCreateForm(props: InternshipsPageProps) {
+  return (
+    <>
+      <div className="internship-header">
+        <div>
+          <p className="section-label">Add internship</p>
+          <h3>New internship template</h3>
+        </div>
+      </div>
+      <InternshipDraftFields
+        draft={props.internshipCreateDraft}
+        onChange={props.onInternshipCreateDraftChange}
+      />
+      {props.internshipCreateError ? (
+        <p className="internship-form-error">{props.internshipCreateError}</p>
+      ) : null}
+      <div className="internship-admin-actions">
+        <button
+          type="button"
+          className="primary-button"
+          disabled={props.isCreatingInternship}
+          onClick={props.onInternshipCreateSave}
+        >
+          {props.isCreatingInternship ? 'Adding...' : 'Add internship'}
+        </button>
+        <button type="button" className="nav-link" onClick={props.onInternshipCreateCancel}>
+          Cancel
+        </button>
+      </div>
+    </>
+  )
+}
+
+type InternshipDraftFieldsProps = {
+  draft: Omit<Internship, 'id'>
+  onChange: (field: keyof Omit<Internship, 'id'>, value: string) => void
+}
+
+function InternshipDraftFields({ draft, onChange }: InternshipDraftFieldsProps) {
+  return (
+    <>
+      <label className="experience-form-field">
+        <span>Name of Internship</span>
+        <input type="text" value={draft.name} onChange={(e) => onChange('name', e.target.value)} />
+      </label>
+      <label className="experience-form-field">
+        <span>Institution</span>
+        <input type="text" value={draft.institution} onChange={(e) => onChange('institution', e.target.value)} />
+      </label>
+      <label className="experience-form-field">
+        <span>Location</span>
+        <input type="text" value={draft.location} onChange={(e) => onChange('location', e.target.value)} />
+      </label>
+      <label className="experience-form-field">
+        <span>Summary</span>
+        <textarea rows={3} value={draft.summary} onChange={(e) => onChange('summary', e.target.value)} />
+      </label>
+      <label className="experience-form-field">
+        <span>Ideal Candidate</span>
+        <select value={draft.idealCandidate} onChange={(e) => onChange('idealCandidate', e.target.value)}>
+          <option value="">Select an option</option>
+          <FormOptions options={idealCandidateOptions} />
+        </select>
+      </label>
+      <label className="experience-form-field">
+        <span>Clinical or Basic Science or Other</span>
+        <select value={draft.opportunityType} onChange={(e) => onChange('opportunityType', e.target.value)}>
+          <option value="">Select an option</option>
+          <FormOptions options={opportunityTypeOptions} />
+        </select>
+      </label>
+      <label className="experience-form-field">
+        <span>Deadline</span>
+        <input type="text" value={draft.deadline} onChange={(e) => onChange('deadline', e.target.value)} />
+      </label>
+      <label className="experience-form-field">
+        <span>Website</span>
+        <input type="text" value={draft.website} onChange={(e) => onChange('website', e.target.value)} />
+      </label>
+      <label className="experience-form-field">
+        <span>Comments</span>
+        <textarea rows={3} value={draft.comments} onChange={(e) => onChange('comments', e.target.value)} />
+      </label>
     </>
   )
 }

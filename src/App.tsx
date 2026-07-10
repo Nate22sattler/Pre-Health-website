@@ -11,7 +11,7 @@ import {
 } from './auth'
 import { AuthGateScreen, AuthLoadingScreen } from './components/AuthScreens'
 import { Header, PublicHeader } from './components/Header'
-import { contactFieldOptions, createExperienceDraft, initialFormData } from './constants'
+import { contactFieldOptions, createExperienceDraft, createInternshipDraft, initialFormData } from './constants'
 import { mapAlumniSubmissionRow, mapContactRow, mapInternshipExperienceRow, mapInternshipRow } from './lib/rowMappers'
 import { DirectoryPage } from './pages/DirectoryPage'
 import { HomePage } from './pages/HomePage'
@@ -76,6 +76,12 @@ function App() {
   const [contactDeletingById, setContactDeletingById] = useState<Record<string, boolean>>({})
   const [editingInternshipId, setEditingInternshipId] = useState<string | null>(null)
   const [internshipEditDraft, setInternshipEditDraft] = useState<Omit<Internship, 'id'> | null>(null)
+  const [isAddingInternship, setIsAddingInternship] = useState(false)
+  const [internshipCreateDraft, setInternshipCreateDraft] = useState<Omit<Internship, 'id'>>(
+    createInternshipDraft,
+  )
+  const [internshipCreateError, setInternshipCreateError] = useState<string | null>(null)
+  const [isCreatingInternship, setIsCreatingInternship] = useState(false)
   const [internshipSavingById, setInternshipSavingById] = useState<Record<string, boolean>>({})
   const [internshipDeletingById, setInternshipDeletingById] = useState<Record<string, boolean>>({})
   const [editingExperienceId, setEditingExperienceId] = useState<string | null>(null)
@@ -135,6 +141,10 @@ function App() {
     setSubmissionReviewError(null)
     setEditingInternshipId(null)
     setInternshipEditDraft(null)
+    setIsAddingInternship(false)
+    setInternshipCreateDraft(createInternshipDraft())
+    setInternshipCreateError(null)
+    setIsCreatingInternship(false)
     setInternshipSavingById({})
     setInternshipDeletingById({})
     setEditingExperienceId(null)
@@ -650,6 +660,72 @@ function App() {
     setInternshipEditDraft((current) => (current ? { ...current, [field]: value } : current))
   }
 
+  function handleInternshipCreateStart() {
+    setIsAddingInternship(true)
+    setEditingInternshipId(null)
+    setInternshipEditDraft(null)
+    setInternshipCreateDraft(createInternshipDraft())
+    setInternshipCreateError(null)
+  }
+
+  function handleInternshipCreateCancel() {
+    setIsAddingInternship(false)
+    setInternshipCreateDraft(createInternshipDraft())
+    setInternshipCreateError(null)
+  }
+
+  function handleInternshipCreateDraftChange(field: keyof Omit<Internship, 'id'>, value: string) {
+    setInternshipCreateDraft((current) => ({ ...current, [field]: value }))
+    setInternshipCreateError(null)
+  }
+
+  async function handleInternshipCreateSave() {
+    const requiredFields = [
+      internshipCreateDraft.name,
+      internshipCreateDraft.institution,
+      internshipCreateDraft.location,
+      internshipCreateDraft.summary,
+    ]
+
+    if (requiredFields.some((value) => value.trim() === '')) {
+      setInternshipCreateError('Please fill in name, institution, location, and summary.')
+      return
+    }
+
+    setIsCreatingInternship(true)
+    setInternshipCreateError(null)
+
+    const { data, error: insertError } = await supabase
+      .from('internships')
+      .insert({
+        name: internshipCreateDraft.name,
+        institution: internshipCreateDraft.institution,
+        location: internshipCreateDraft.location,
+        summary: internshipCreateDraft.summary,
+        ideal_candidate: internshipCreateDraft.idealCandidate || null,
+        opportunity_type: internshipCreateDraft.opportunityType || null,
+        deadline: internshipCreateDraft.deadline || null,
+        website: internshipCreateDraft.website || null,
+        comments: internshipCreateDraft.comments || null,
+      })
+      .select('*')
+      .single()
+
+    setIsCreatingInternship(false)
+
+    if (insertError) {
+      setInternshipCreateError(insertError.message)
+      return
+    }
+
+    const newInternship = mapInternshipRow(data as InternshipRow)
+    setInternships((current) =>
+      [...current, newInternship].sort((a, b) => a.name.localeCompare(b.name)),
+    )
+    setIsAddingInternship(false)
+    setInternshipCreateDraft(createInternshipDraft())
+  }
+
   async function handleInternshipEditSave(internshipId: string) {
     if (!internshipEditDraft) {
       return
@@ -1037,6 +1113,10 @@ function App() {
           currentUserId={session.user.id}
           editingInternshipId={editingInternshipId}
           internshipEditDraft={internshipEditDraft}
+          isAddingInternship={isAddingInternship}
+          internshipCreateDraft={internshipCreateDraft}
+          internshipCreateError={internshipCreateError}
+          isCreatingInternship={isCreatingInternship}
           internshipSavingById={internshipSavingById}
           internshipDeletingById={internshipDeletingById}
           experiencePanelModeByInternshipId={experiencePanelModeByInternshipId}
@@ -1056,6 +1136,10 @@ function App() {
           onInternshipEditDraftChange={handleInternshipEditDraftChange}
           onInternshipEditSave={handleInternshipEditSave}
           onInternshipDelete={handleInternshipDelete}
+          onInternshipCreateStart={handleInternshipCreateStart}
+          onInternshipCreateCancel={handleInternshipCreateCancel}
+          onInternshipCreateDraftChange={handleInternshipCreateDraftChange}
+          onInternshipCreateSave={handleInternshipCreateSave}
           onToggleReadExperienceSection={toggleReadExperienceSection}
           onShareExperience={handleShareExperience}
           onExperienceDraftChange={handleExperienceDraftChange}

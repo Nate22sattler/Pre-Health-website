@@ -1,4 +1,4 @@
-import type { ExperienceDraft, SubmissionFormData } from './types'
+import type { ExperienceDraft, Internship, SubmissionFormData } from './types'
 
 export const idealCandidateOptions = ['pre-MD', 'pre-PhD', 'other']
 export const opportunityTypeOptions = ['Clinical', 'Basic Science', 'Other']
@@ -50,5 +50,19 @@ export function createExperienceDraft(): ExperienceDraft {
   return {
     authorName: '',
     note: '',
+  }
+}
+
+export function createInternshipDraft(): Omit<Internship, 'id'> {
+  return {
+    name: '',
+    institution: '',
+    location: '',
+    summary: '',
+    idealCandidate: '',
+    opportunityType: '',
+    deadline: '',
+    website: '',
+    comments: '',
   }
 }

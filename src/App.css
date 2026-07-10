@@ -502,6 +502,24 @@
   align-items: start;
 }
 
+.internships-admin-toolbar,
+.internship-create-card {
+  grid-column: 1 / -1;
+}
+
+.internships-admin-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.internship-form-error {
+  margin: 14px 0 0;
+  color: #9d2b2b;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .internships-section-divider {
   grid-column: 1 / -1;
   display: grid;
