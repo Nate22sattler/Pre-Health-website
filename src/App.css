@@ -715,6 +715,42 @@
   align-items: start;
 }
 
+.internship-card-toggle {
+  display: flex;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: start;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.internship-card-toggle:focus-visible {
+  outline: 2px solid rgba(26, 51, 95, 0.28);
+  outline-offset: 6px;
+  border-radius: 12px;
+}
+
+.internship-card-toggle-meta {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+}
+
+.internship-card-details {
+  margin-top: 18px;
+}
+
+.internship-card-collapsed {
+  padding-top: 22px;
+  padding-bottom: 22px;
+}
+
 .internship-organization,
 .internship-description {
   color: var(--muted);

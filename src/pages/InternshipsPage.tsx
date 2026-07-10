@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type {
   ExperienceDraft,
   ExperiencePanelMode,
@@ -162,70 +162,87 @@ type InternshipCardProps = InternshipsPageProps & {
 }
 
 function InternshipCard({ internship, ...props }: InternshipCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const editDraft = props.editingInternshipId === internship.id ? props.internshipEditDraft : null
+  const detailsId = `internship-details-${internship.id}`
+  const isOpen = isExpanded || editDraft !== null
+
   return (
-    <article className="internship-card">
-      {props.editingInternshipId === internship.id && props.internshipEditDraft ? (
-        <InternshipEditForm internshipId={internship.id} draft={props.internshipEditDraft} {...props} />
+    <article className={`internship-card${isOpen ? '' : ' internship-card-collapsed'}`}>
+      {editDraft ? (
+        <InternshipEditForm internshipId={internship.id} draft={editDraft} {...props} />
       ) : (
         <>
-          <div className="internship-header">
+          <button
+            type="button"
+            className="internship-card-toggle"
+            aria-expanded={isOpen}
+            aria-controls={detailsId}
+            onClick={() => setIsExpanded((current) => !current)}
+          >
             <div>
               <p className="contact-field">{internship.opportunityType || 'Internship'}</p>
               <h3>{internship.name}</h3>
             </div>
-            <p className="internship-organization">{internship.institution}</p>
-          </div>
-
-          <p className="internship-description">{internship.summary}</p>
-          <InternshipTable internship={internship} />
-
-          {props.isAdmin ? (
-            <div className="internship-admin-actions">
-              <button
-                type="button"
-                className="experience-delete-button"
-                onClick={() => props.onInternshipEditStart(internship)}
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                className="experience-delete-button"
-                disabled={props.internshipDeletingById[internship.id]}
-                onClick={() => props.onInternshipDelete(internship.id)}
-              >
-                {props.internshipDeletingById[internship.id] ? 'Deleting...' : 'Delete'}
-              </button>
+            <div className="internship-card-toggle-meta">
+              <p className="internship-organization">{internship.institution}</p>
             </div>
-          ) : null}
+          </button>
 
-          <div className="internship-actions">
-            <button
-              type="button"
-              className="internship-action-button"
-              aria-expanded={props.experiencePanelModeByInternshipId[internship.id] === 'read' ? 'true' : 'false'}
-              aria-controls={`internship-experiences-read-${internship.id}`}
-              onClick={() => props.onToggleReadExperienceSection(internship.id)}
-            >
-              Read experiences
-            </button>
-            <button
-              type="button"
-              className="internship-action-button internship-action-button-secondary"
-              aria-expanded={props.experiencePanelModeByInternshipId[internship.id] === 'share' ? 'true' : 'false'}
-              aria-controls={`internship-experiences-share-${internship.id}`}
-              onClick={() => props.onShareExperience(internship.id)}
-            >
-              Share your experience
-            </button>
-          </div>
+          {isOpen ? (
+            <div id={detailsId} className="internship-card-details">
+              <p className="internship-description">{internship.summary}</p>
+              <InternshipTable internship={internship} />
 
-          {props.experiencePanelModeByInternshipId[internship.id] === 'read' ? (
-            <ReadExperiences internshipId={internship.id} {...props} />
-          ) : null}
+              {props.isAdmin ? (
+                <div className="internship-admin-actions">
+                  <button
+                    type="button"
+                    className="experience-delete-button"
+                    onClick={() => props.onInternshipEditStart(internship)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="experience-delete-button"
+                    disabled={props.internshipDeletingById[internship.id]}
+                    onClick={() => props.onInternshipDelete(internship.id)}
+                  >
+                    {props.internshipDeletingById[internship.id] ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              ) : null}
 
-          {props.experiencePanelModeByInternshipId[internship.id] === 'share' ? (
-            <ShareExperienceForm internshipId={internship.id} {...props} />
+              <div className="internship-actions">
+                <button
+                  type="button"
+                  className="internship-action-button"
+                  aria-expanded={props.experiencePanelModeByInternshipId[internship.id] === 'read' ? 'true' : 'false'}
+                  aria-controls={`internship-experiences-read-${internship.id}`}
+                  onClick={() => props.onToggleReadExperienceSection(internship.id)}
+                >
+                  Read experiences
+                </button>
+                <button
+                  type="button"
+                  className="internship-action-button internship-action-button-secondary"
+                  aria-expanded={props.experiencePanelModeByInternshipId[internship.id] === 'share' ? 'true' : 'false'}
+                  aria-controls={`internship-experiences-share-${internship.id}`}
+                  onClick={() => props.onShareExperience(internship.id)}
+                >
+                  Share your experience
+                </button>
+              </div>
+
+              {props.experiencePanelModeByInternshipId[internship.id] === 'read' ? (
+                <ReadExperiences internshipId={internship.id} {...props} />
+              ) : null}
+
+              {props.experiencePanelModeByInternshipId[internship.id] === 'share' ? (
+                <ShareExperienceForm internshipId={internship.id} {...props} />
+              ) : null}
+            </div>
           ) : null}
         </>
       )}
