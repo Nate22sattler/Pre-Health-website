@@ -52,7 +52,7 @@ export function SubmitPage({
           </ul>
           {!isPublicPage ? (
             <p className="share-link">
-              <a href="/alumni-submit" target="_blank" rel="noreferrer">
+              <a href="/#alumni-submit" target="_blank" rel="noreferrer">
                 Open the shareable alumni form
               </a>
             </p>
