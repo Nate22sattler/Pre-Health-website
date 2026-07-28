@@ -11,8 +11,18 @@ export function InternshipTable({ internship }: InternshipTableProps) {
     ['Institution', internship.institution],
     ['Location', internship.location || 'Not provided'],
     ['Summary', internship.summary || 'Not provided'],
-    ['Ideal Candidate', internship.idealCandidate || 'Not provided'],
-    ['Clinical or Basic Science or Other', internship.opportunityType || 'Not provided'],
+    [
+      'Ideal Candidate',
+      internship.idealCandidate === 'other' && internship.idealCandidateOther
+        ? `Other — ${internship.idealCandidateOther}`
+        : internship.idealCandidate || 'Not provided',
+    ],
+    [
+      'Clinical or Basic Science or Other',
+      internship.opportunityType === 'Other' && internship.opportunityTypeOther
+        ? `Other — ${internship.opportunityTypeOther}`
+        : internship.opportunityType || 'Not provided',
+    ],
     ['Deadline', internship.deadline || 'Not provided'],
   ]
 

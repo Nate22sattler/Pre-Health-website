@@ -28,7 +28,9 @@ export type Internship = {
   location: string
   summary: string
   idealCandidate: string
+  idealCandidateOther: string
   opportunityType: string
+  opportunityTypeOther: string
   deadline: string
   website: string
   comments: string
@@ -113,7 +115,9 @@ export type InternshipRow = {
   location: string
   summary: string
   ideal_candidate: string | null
+  ideal_candidate_other: string | null
   opportunity_type: string | null
+  opportunity_type_other: string | null
   deadline: string | null
   website: string | null
   comments: string | null

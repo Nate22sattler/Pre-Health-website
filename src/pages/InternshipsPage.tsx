@@ -343,6 +343,17 @@ function InternshipDraftFields({ draft, onChange }: InternshipDraftFieldsProps) 
           <FormOptions options={idealCandidateOptions} />
         </select>
       </label>
+      {draft.idealCandidate === 'other' ? (
+        <label className="experience-form-field">
+          <span>Describe ideal candidate</span>
+          <input
+            type="text"
+            value={draft.idealCandidateOther}
+            onChange={(e) => onChange('idealCandidateOther', e.target.value)}
+            placeholder="e.g. pre-NP, pre-PA, pre-DPT..."
+          />
+        </label>
+      ) : null}
       <label className="experience-form-field">
         <span>Clinical or Basic Science or Other</span>
         <select value={draft.opportunityType} onChange={(e) => onChange('opportunityType', e.target.value)}>
@@ -350,6 +361,17 @@ function InternshipDraftFields({ draft, onChange }: InternshipDraftFieldsProps) 
           <FormOptions options={opportunityTypeOptions} />
         </select>
       </label>
+      {draft.opportunityType === 'Other' ? (
+        <label className="experience-form-field">
+          <span>Describe opportunity type</span>
+          <input
+            type="text"
+            value={draft.opportunityTypeOther}
+            onChange={(e) => onChange('opportunityTypeOther', e.target.value)}
+            placeholder="e.g. Community health, Public health, Shadowing..."
+          />
+        </label>
+      ) : null}
       <label className="experience-form-field">
         <span>Deadline</span>
         <input type="text" value={draft.deadline} onChange={(e) => onChange('deadline', e.target.value)} />

@@ -703,7 +703,13 @@ function App() {
         location: internshipCreateDraft.location,
         summary: internshipCreateDraft.summary,
         ideal_candidate: internshipCreateDraft.idealCandidate || null,
+        ideal_candidate_other: internshipCreateDraft.idealCandidate === 'other'
+          ? internshipCreateDraft.idealCandidateOther.trim() || null
+          : null,
         opportunity_type: internshipCreateDraft.opportunityType || null,
+        opportunity_type_other: internshipCreateDraft.opportunityType === 'Other'
+          ? internshipCreateDraft.opportunityTypeOther.trim() || null
+          : null,
         deadline: internshipCreateDraft.deadline || null,
         website: internshipCreateDraft.website || null,
         comments: internshipCreateDraft.comments || null,
@@ -741,7 +747,13 @@ function App() {
         location: internshipEditDraft.location,
         summary: internshipEditDraft.summary,
         ideal_candidate: internshipEditDraft.idealCandidate || null,
+        ideal_candidate_other: internshipEditDraft.idealCandidate === 'other'
+          ? internshipEditDraft.idealCandidateOther.trim() || null
+          : null,
         opportunity_type: internshipEditDraft.opportunityType || null,
+        opportunity_type_other: internshipEditDraft.opportunityType === 'Other'
+          ? internshipEditDraft.opportunityTypeOther.trim() || null
+          : null,
         deadline: internshipEditDraft.deadline || null,
         website: internshipEditDraft.website || null,
         comments: internshipEditDraft.comments || null,
