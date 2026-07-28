@@ -181,7 +181,11 @@ function InternshipCard({ internship, ...props }: InternshipCardProps) {
             onClick={() => setIsExpanded((current) => !current)}
           >
             <div>
-              <p className="contact-field">{internship.opportunityType || 'Internship'}</p>
+              <p className="contact-field">
+                {internship.opportunityType === 'Other' && internship.opportunityTypeOther
+                  ? `Other — ${internship.opportunityTypeOther}`
+                  : internship.opportunityType || 'Internship'}
+              </p>
               <h3>{internship.name}</h3>
             </div>
             <div className="internship-card-toggle-meta">
