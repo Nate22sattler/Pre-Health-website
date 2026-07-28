@@ -183,7 +183,7 @@ function InternshipCard({ internship, ...props }: InternshipCardProps) {
             <div>
               <p className="contact-field">
                 {internship.opportunityType === 'Other' && internship.opportunityTypeOther
-                  ? `Other — ${internship.opportunityTypeOther}`
+                  ? internship.opportunityTypeOther
                   : internship.opportunityType || 'Internship'}
               </p>
               <h3>{internship.name}</h3>
